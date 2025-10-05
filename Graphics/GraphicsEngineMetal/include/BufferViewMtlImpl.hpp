@@ -24,26 +24,37 @@
  *  of the possibility of such damages.
  */
 
-#include "RenderPassMtlImpl.hpp"
-#include "RenderDeviceMtlImpl.hpp"
+#pragma once
+
+/// \file
+/// Declaration of Diligent::BufferViewMtlImpl class
+
+#include "EngineMtlImplTraits.hpp"
+#include "BufferViewBase.hpp"
 
 namespace Diligent
 {
 
-RenderPassMtlImpl::RenderPassMtlImpl(IReferenceCounters*   pRefCounters,
-                                     RenderDeviceMtlImpl*  pRenderDeviceMtl,
-                                     const RenderPassDesc& Desc,
-                                     bool                  IsDeviceInternal) :
-    TBase{pRefCounters, pRenderDeviceMtl, Desc, IsDeviceInternal}
+/// Buffer view implementation in Metal backend.
+class BufferViewMtlImpl final : public BufferViewBase<EngineMtlImplTraits>
 {
-    // Metal doesn't use explicit render pass objects like Vulkan
-    // Render pass information is encoded directly in MTLRenderPassDescriptor
-    // when beginning a render command encoder
-}
+public:
+    using TBufferViewBase = BufferViewBase<EngineMtlImplTraits>;
 
-RenderPassMtlImpl::~RenderPassMtlImpl()
-{
-    // Metal render passes don't require explicit cleanup
-}
+    BufferViewMtlImpl(IReferenceCounters*   pRefCounters,
+                      RenderDeviceMtlImpl*  pDevice,
+                      const BufferViewDesc& ViewDesc,
+                      IBuffer*              pBuffer,
+                      bool                  bIsDefaultView);
+    ~BufferViewMtlImpl();
+
+    IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_BufferViewMtl, TBufferViewBase)
+
+    /// Implementation of IBufferViewMtl::GetMtlTextureView().
+    virtual id<MTLTexture> DILIGENT_CALL_TYPE GetMtlTextureView() const override final;
+
+protected:
+    id<MTLTexture> m_MtlTextureView = nil;
+};
 
 } // namespace Diligent

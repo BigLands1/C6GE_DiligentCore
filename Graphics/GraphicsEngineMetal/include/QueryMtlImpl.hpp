@@ -24,26 +24,40 @@
  *  of the possibility of such damages.
  */
 
-#include "RenderPassMtlImpl.hpp"
-#include "RenderDeviceMtlImpl.hpp"
+#pragma once
+
+/// \file
+/// Declaration of Diligent::QueryMtlImpl class
+
+#include "EngineMtlImplTraits.hpp"
+#include "QueryBase.hpp"
 
 namespace Diligent
 {
 
-RenderPassMtlImpl::RenderPassMtlImpl(IReferenceCounters*   pRefCounters,
-                                     RenderDeviceMtlImpl*  pRenderDeviceMtl,
-                                     const RenderPassDesc& Desc,
-                                     bool                  IsDeviceInternal) :
-    TBase{pRefCounters, pRenderDeviceMtl, Desc, IsDeviceInternal}
+/// Query implementation in Metal backend.
+class QueryMtlImpl final : public QueryBase<EngineMtlImplTraits>
 {
-    // Metal doesn't use explicit render pass objects like Vulkan
-    // Render pass information is encoded directly in MTLRenderPassDescriptor
-    // when beginning a render command encoder
-}
+public:
+    using TQueryBase = QueryBase<EngineMtlImplTraits>;
 
-RenderPassMtlImpl::~RenderPassMtlImpl()
-{
-    // Metal render passes don't require explicit cleanup
-}
+    QueryMtlImpl(IReferenceCounters*  pRefCounters,
+                 RenderDeviceMtlImpl* pRenderDeviceMtl,
+                 const QueryDesc&     Desc,
+                 bool                 IsDeviceInternal = false);
+    ~QueryMtlImpl();
+
+    IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_QueryMtl, TQueryBase)
+
+    /// Implementation of IQuery::GetData().
+    virtual bool DILIGENT_CALL_TYPE GetData(void* pData, Uint32 DataSize, bool AutoInvalidate) override final;
+
+    /// Implementation of IQuery::Invalidate().
+    virtual void DILIGENT_CALL_TYPE Invalidate() override final;
+
+private:
+    Uint64 m_QueryData = 0;
+    bool   m_DataAvailable = false;
+};
 
 } // namespace Diligent

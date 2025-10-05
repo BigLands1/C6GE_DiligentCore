@@ -26,6 +26,7 @@
 
 #include "ShaderMtlImpl.hpp"
 #include "RenderDeviceMtlImpl.hpp"
+#import <Metal/Metal.h>
 
 namespace Diligent
 {
@@ -37,16 +38,62 @@ ShaderMtlImpl::ShaderMtlImpl(IReferenceCounters*     pRefCounters,
                              bool                    IsDeviceInternal) :
     TShaderBase{pRefCounters, pRenderDeviceMtl, ShaderCI.Desc, MtlShaderCI, IsDeviceInternal}
 {
-    // TODO: Implement shader compilation and initialization
+    // Store entry point
     if (ShaderCI.EntryPoint != nullptr && ShaderCI.EntryPoint[0] != '\0')
     {
         m_EntryPoint = ShaderCI.EntryPoint;
+    }
+
+    // Compile MSL shader from source
+    if (ShaderCI.Source != nullptr && ShaderCI.SourceLength > 0)
+    {
+        @autoreleasepool
+        {
+            id<MTLDevice> mtlDevice = pRenderDeviceMtl->GetMtlDevice();
+            
+            NSString* source = [[NSString alloc] initWithBytes:ShaderCI.Source
+                                                        length:ShaderCI.SourceLength
+                                                      encoding:NSUTF8StringEncoding];
+            
+            NSError* error = nil;
+            id<MTLLibrary> library = [mtlDevice newLibraryWithSource:source
+                                                             options:nil
+                                                               error:&error];
+            [source release];
+            
+            if (library == nil || error != nil)
+            {
+                if (error != nil)
+                {
+                    NSString* errorMsg = [error localizedDescription];
+                    LOG_ERROR_MESSAGE("Failed to compile Metal shader '", ShaderCI.Desc.Name, "': ", [errorMsg UTF8String]);
+                }
+                else
+                {
+                    LOG_ERROR_MESSAGE("Failed to compile Metal shader '", ShaderCI.Desc.Name, "'");
+                }
+                
+                if (MtlShaderCI.ppCompilerOutput != nullptr)
+                {
+                    // TODO: Create data blob with error message
+                }
+            }
+            else
+            {
+                // Store the compiled library
+                m_MtlLibrary = library;
+            }
+        }
     }
 }
 
 ShaderMtlImpl::~ShaderMtlImpl()
 {
-    // TODO: Cleanup shader resources
+    if (m_MtlLibrary != nil)
+    {
+        [m_MtlLibrary release];
+        m_MtlLibrary = nil;
+    }
 }
 
 void ShaderMtlImpl::QueryInterface(const INTERFACE_ID& IID, IObject** ppInterface)

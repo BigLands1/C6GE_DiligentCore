@@ -24,26 +24,36 @@
  *  of the possibility of such damages.
  */
 
-#include "RenderPassMtlImpl.hpp"
-#include "RenderDeviceMtlImpl.hpp"
+#pragma once
+
+/// \file
+/// Declaration of Diligent::SamplerMtlImpl class
+
+#include "EngineMtlImplTraits.hpp"
+#include "SamplerBase.hpp"
 
 namespace Diligent
 {
 
-RenderPassMtlImpl::RenderPassMtlImpl(IReferenceCounters*   pRefCounters,
-                                     RenderDeviceMtlImpl*  pRenderDeviceMtl,
-                                     const RenderPassDesc& Desc,
-                                     bool                  IsDeviceInternal) :
-    TBase{pRefCounters, pRenderDeviceMtl, Desc, IsDeviceInternal}
+/// Sampler object implementation in Metal backend.
+class SamplerMtlImpl final : public SamplerBase<EngineMtlImplTraits>
 {
-    // Metal doesn't use explicit render pass objects like Vulkan
-    // Render pass information is encoded directly in MTLRenderPassDescriptor
-    // when beginning a render command encoder
-}
+public:
+    using TSamplerBase = SamplerBase<EngineMtlImplTraits>;
 
-RenderPassMtlImpl::~RenderPassMtlImpl()
-{
-    // Metal render passes don't require explicit cleanup
-}
+    SamplerMtlImpl(IReferenceCounters*  pRefCounters,
+                   RenderDeviceMtlImpl* pDeviceMtl,
+                   const SamplerDesc&   SamplerDesc);
+
+    ~SamplerMtlImpl();
+
+    IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_SamplerMtl, TSamplerBase)
+
+    /// Implementation of ISamplerMtl::GetMtlSampler().
+    virtual id<MTLSamplerState> DILIGENT_CALL_TYPE GetMtlSampler() override final;
+
+private:
+    id<MTLSamplerState> m_MtlSampler = nil;
+};
 
 } // namespace Diligent

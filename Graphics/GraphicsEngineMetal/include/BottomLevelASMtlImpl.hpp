@@ -24,26 +24,39 @@
  *  of the possibility of such damages.
  */
 
-#include "RenderPassMtlImpl.hpp"
-#include "RenderDeviceMtlImpl.hpp"
+#pragma once
+
+/// \file
+/// Declaration of Diligent::BottomLevelASMtlImpl class
+
+#include "EngineMtlImplTraits.hpp"
+#include "BottomLevelASBase.hpp"
 
 namespace Diligent
 {
 
-RenderPassMtlImpl::RenderPassMtlImpl(IReferenceCounters*   pRefCounters,
-                                     RenderDeviceMtlImpl*  pRenderDeviceMtl,
-                                     const RenderPassDesc& Desc,
-                                     bool                  IsDeviceInternal) :
-    TBase{pRefCounters, pRenderDeviceMtl, Desc, IsDeviceInternal}
+/// Bottom-level acceleration structure implementation in Metal backend.
+class BottomLevelASMtlImpl final : public BottomLevelASBase<EngineMtlImplTraits>
 {
-    // Metal doesn't use explicit render pass objects like Vulkan
-    // Render pass information is encoded directly in MTLRenderPassDescriptor
-    // when beginning a render command encoder
-}
+public:
+    using TBottomLevelASBase = BottomLevelASBase<EngineMtlImplTraits>;
 
-RenderPassMtlImpl::~RenderPassMtlImpl()
-{
-    // Metal render passes don't require explicit cleanup
-}
+    BottomLevelASMtlImpl(IReferenceCounters*        pRefCounters,
+                         RenderDeviceMtlImpl*       pDeviceMtl,
+                         const BottomLevelASDesc&   Desc,
+                         bool                       IsDeviceInternal = false);
+    ~BottomLevelASMtlImpl();
+
+    IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_BottomLevelASMtl, TBottomLevelASBase)
+
+    /// Implementation of IBottomLevelASMtl::GetMtlAccelerationStructure().
+    virtual id<MTLAccelerationStructure> DILIGENT_CALL_TYPE GetMtlAccelerationStructure() const API_AVAILABLE(ios(14), macosx(11.0)) API_UNAVAILABLE(tvos) override final;
+
+    /// Implementation of IBottomLevelAS::GetNativeHandle().
+    virtual Uint64 DILIGENT_CALL_TYPE GetNativeHandle() override final;
+
+private:
+    id<MTLAccelerationStructure> m_MtlAccelStruct API_AVAILABLE(ios(14), macosx(11.0)) API_UNAVAILABLE(tvos) = nil;
+};
 
 } // namespace Diligent

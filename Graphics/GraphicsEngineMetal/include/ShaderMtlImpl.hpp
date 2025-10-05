@@ -78,8 +78,15 @@ public:
 
     virtual void DILIGENT_CALL_TYPE QueryInterface(const INTERFACE_ID& IID, IObject** ppInterface) override final;
 
+    /// Get the Metal library object
+    id<MTLLibrary> GetMtlLibrary() const { return m_MtlLibrary; }
+
+    /// Get the entry point name
+    const String& GetEntryPoint() const { return m_EntryPoint; }
+
 private:
     String m_EntryPoint;
+    id<MTLLibrary> m_MtlLibrary = nil;
 };
 
 } // namespace Diligent

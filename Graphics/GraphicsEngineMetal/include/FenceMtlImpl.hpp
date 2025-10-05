@@ -24,26 +24,45 @@
  *  of the possibility of such damages.
  */
 
-#include "RenderPassMtlImpl.hpp"
-#include "RenderDeviceMtlImpl.hpp"
+#pragma once
+
+/// \file
+/// Declaration of Diligent::FenceMtlImpl class
+
+#include "EngineMtlImplTraits.hpp"
+#include "FenceBase.hpp"
 
 namespace Diligent
 {
 
-RenderPassMtlImpl::RenderPassMtlImpl(IReferenceCounters*   pRefCounters,
-                                     RenderDeviceMtlImpl*  pRenderDeviceMtl,
-                                     const RenderPassDesc& Desc,
-                                     bool                  IsDeviceInternal) :
-    TBase{pRefCounters, pRenderDeviceMtl, Desc, IsDeviceInternal}
+/// Fence object implementation in Metal backend.
+class FenceMtlImpl final : public FenceBase<EngineMtlImplTraits>
 {
-    // Metal doesn't use explicit render pass objects like Vulkan
-    // Render pass information is encoded directly in MTLRenderPassDescriptor
-    // when beginning a render command encoder
-}
+public:
+    using TFenceBase = FenceBase<EngineMtlImplTraits>;
 
-RenderPassMtlImpl::~RenderPassMtlImpl()
-{
-    // Metal render passes don't require explicit cleanup
-}
+    FenceMtlImpl(IReferenceCounters*  pRefCounters,
+                 RenderDeviceMtlImpl* pDeviceMtl,
+                 const FenceDesc&     Desc);
+
+    ~FenceMtlImpl();
+
+    IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_FenceMtl, TFenceBase)
+
+    /// Implementation of IFence::GetCompletedValue().
+    virtual Uint64 DILIGENT_CALL_TYPE GetCompletedValue() override final;
+
+    /// Implementation of IFence::Signal().
+    virtual void DILIGENT_CALL_TYPE Signal(Uint64 Value) override final;
+
+    /// Implementation of IFence::Wait().
+    virtual void DILIGENT_CALL_TYPE Wait(Uint64 Value) override final;
+
+    /// Implementation of IFenceMtl::GetMtlSharedEvent().
+    virtual id<MTLSharedEvent> DILIGENT_CALL_TYPE GetMtlSharedEvent() const API_AVAILABLE(ios(12), macosx(10.14), tvos(12.0)) override final;
+
+private:
+    id<MTLSharedEvent> m_MtlSharedEvent API_AVAILABLE(ios(12), macosx(10.14), tvos(12.0)) = nil;
+};
 
 } // namespace Diligent

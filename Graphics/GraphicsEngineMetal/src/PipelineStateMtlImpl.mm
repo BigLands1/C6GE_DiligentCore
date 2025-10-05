@@ -26,6 +26,8 @@
 
 #include "PipelineStateMtlImpl.hpp"
 #include "RenderDeviceMtlImpl.hpp"
+#include "ShaderMtlImpl.hpp"
+#import <Metal/Metal.h>
 
 namespace Diligent
 {
@@ -36,12 +38,101 @@ PipelineStateMtlImpl::PipelineStateMtlImpl(IReferenceCounters*             pRefC
                                            bool                            IsDeviceInternal) :
     TPipelineStateBase{pRefCounters, pRenderDeviceMtl, CreateInfo, IsDeviceInternal}
 {
-    // TODO: Implement pipeline state creation
+    @autoreleasepool
+    {
+        id<MTLDevice> mtlDevice = pRenderDeviceMtl->GetMtlDevice();
+        
+        if (CreateInfo.PSODesc.PipelineType == PIPELINE_TYPE_GRAPHICS || 
+            CreateInfo.PSODesc.PipelineType == PIPELINE_TYPE_MESH)
+        {
+            // Create graphics pipeline state
+            auto& GraphicsPipeline = CreateInfo.PSODesc.GraphicsPipeline;
+            
+            MTLRenderPipelineDescriptor* pipelineDesc = [[MTLRenderPipelineDescriptor alloc] init];
+            
+            // Set up vertex function
+            if (GraphicsPipeline.pVS != nullptr)
+            {
+                auto* pVS = static_cast<ShaderMtlImpl*>(GraphicsPipeline.pVS);
+                NSString* entryPoint = [NSString stringWithUTF8String:pVS->GetEntryPoint().c_str()];
+                id<MTLFunction> vertexFunc = [pVS->GetMtlLibrary() newFunctionWithName:entryPoint];
+                if (vertexFunc != nil)
+                {
+                    pipelineDesc.vertexFunction = vertexFunc;
+                    [vertexFunc release];
+                }
+            }
+            
+            // Set up fragment function
+            if (GraphicsPipeline.pPS != nullptr)
+            {
+                auto* pPS = static_cast<ShaderMtlImpl*>(GraphicsPipeline.pPS);
+                NSString* entryPoint = [NSString stringWithUTF8String:pPS->GetEntryPoint().c_str()];
+                id<MTLFunction> fragmentFunc = [pPS->GetMtlLibrary() newFunctionWithName:entryPoint];
+                if (fragmentFunc != nil)
+                {
+                    pipelineDesc.fragmentFunction = fragmentFunc;
+                    [fragmentFunc release];
+                }
+            }
+            
+            NSError* error = nil;
+            m_MtlRenderPipeline = [mtlDevice newRenderPipelineStateWithDescriptor:pipelineDesc error:&error];
+            [pipelineDesc release];
+            
+            if (m_MtlRenderPipeline == nil || error != nil)
+            {
+                if (error != nil)
+                {
+                    NSString* errorMsg = [error localizedDescription];
+                    LOG_ERROR_MESSAGE("Failed to create Metal render pipeline state: ", [errorMsg UTF8String]);
+                }
+            }
+            
+            // Create depth stencil state if needed
+            if (GraphicsPipeline.DepthStencilDesc.DepthEnable || GraphicsPipeline.DepthStencilDesc.StencilEnable)
+            {
+                MTLDepthStencilDescriptor* dsDesc = [[MTLDepthStencilDescriptor alloc] init];
+                dsDesc.depthCompareFunction = GraphicsPipeline.DepthStencilDesc.DepthEnable ? MTLCompareFunctionLess : MTLCompareFunctionAlways;
+                dsDesc.depthWriteEnabled = GraphicsPipeline.DepthStencilDesc.DepthWriteEnable ? YES : NO;
+                
+                m_MtlDepthStencilState = [mtlDevice newDepthStencilStateWithDescriptor:dsDesc];
+                [dsDesc release];
+            }
+        }
+        else if (CreateInfo.PSODesc.PipelineType == PIPELINE_TYPE_COMPUTE)
+        {
+            // Create compute pipeline state
+            auto& ComputePipeline = CreateInfo.PSODesc.ComputePipeline;
+            
+            if (ComputePipeline.pCS != nullptr)
+            {
+                auto* pCS = static_cast<ShaderMtlImpl*>(ComputePipeline.pCS);
+                NSString* entryPoint = [NSString stringWithUTF8String:pCS->GetEntryPoint().c_str()];
+                id<MTLFunction> computeFunc = [pCS->GetMtlLibrary() newFunctionWithName:entryPoint];
+                
+                if (computeFunc != nil)
+                {
+                    NSError* error = nil;
+                    m_MtlComputePipeline = [mtlDevice newComputePipelineStateWithFunction:computeFunc error:&error];
+                    [computeFunc release];
+                    
+                    if (m_MtlComputePipeline == nil || error != nil)
+                    {
+                        if (error != nil)
+                        {
+                            NSString* errorMsg = [error localizedDescription];
+                            LOG_ERROR_MESSAGE("Failed to create Metal compute pipeline state: ", [errorMsg UTF8String]);
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 PipelineStateMtlImpl::~PipelineStateMtlImpl()
 {
-    // TODO: Cleanup pipeline state resources
     if (m_MtlRenderPipeline != nil)
     {
         [m_MtlRenderPipeline release];
