@@ -120,13 +120,7 @@ void RenderDeviceMtlImpl::CreateTextureFromMtlResource(id<MTLTexture>     mtlTex
                                                        RESOURCE_STATE     InitialState,
                                                        ITexture**         ppTexture)
 {
-    CreateDeviceObject("texture from Metal resource", TexDesc, ppTexture,
-        [&]()
-        {
-            TextureMtlImpl* pTextureMtl = NEW_RC_OBJ(m_TexViewObjAllocator, "TextureMtlImpl instance", TextureMtlImpl)
-                                         (GetRawAllocator(), GetTextureViewObjAllocator(), this, TexDesc, InitialState, mtlTexture);
-            pTextureMtl->QueryInterface(IID_Texture, reinterpret_cast<IObject**>(ppTexture));
-        });
+    CreateTextureImpl(ppTexture, TexDesc, InitialState, mtlTexture);
 }
 
 void RenderDeviceMtlImpl::CreateBufferFromMtlResource(id<MTLBuffer>     mtlBuffer,
@@ -134,13 +128,7 @@ void RenderDeviceMtlImpl::CreateBufferFromMtlResource(id<MTLBuffer>     mtlBuffe
                                                       RESOURCE_STATE    InitialState,
                                                       IBuffer**         ppBuffer)
 {
-    CreateDeviceObject("buffer from Metal resource", BuffDesc, ppBuffer,
-        [&]()
-        {
-            BufferMtlImpl* pBufferMtl = NEW_RC_OBJ(m_BufViewObjAllocator, "BufferMtlImpl instance", BufferMtlImpl)
-                                        (GetRawAllocator(), GetBufferViewObjAllocator(), this, BuffDesc, InitialState, mtlBuffer);
-            pBufferMtl->QueryInterface(IID_Buffer, reinterpret_cast<IObject**>(ppBuffer));
-        });
+    CreateBufferImpl(ppBuffer, BuffDesc, InitialState, mtlBuffer);
 }
 
 void RenderDeviceMtlImpl::CreateSparseTexture(const TextureDesc& TexDesc,

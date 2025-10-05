@@ -26,6 +26,7 @@
 
 #include "TextureMtlImpl.hpp"
 #include "RenderDeviceMtlImpl.hpp"
+#include "Cast.hpp"
 #import <Metal/Metal.h>
 
 namespace Diligent
