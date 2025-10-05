@@ -51,6 +51,10 @@ if (WEBGPU_SUPPORTED)
     add_subdirectory(GraphicsEngineWebGPU)
 endif()
 
+if(METAL_SUPPORTED)
+    add_subdirectory(GraphicsEngineMetal)
+endif()
+
 if(ARCHIVER_SUPPORTED)
     add_subdirectory(Archiver)
 endif()

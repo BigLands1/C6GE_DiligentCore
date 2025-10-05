@@ -1,0 +1,103 @@
+cmake_minimum_required (VERSION 3.11)
+
+project(Diligent-GraphicsEngineMetal CXX)
+
+set(INCLUDE
+    include/DeviceObjectArchiveMtlImpl.hpp
+    include/EngineMtlImplTraits.hpp
+    include/PipelineResourceSignatureMtlImpl.hpp
+    include/PipelineStateMtlImpl.hpp
+    include/RenderDeviceMtlImpl.hpp
+    include/RenderPassMtlImpl.hpp
+    include/ShaderMtlImpl.hpp
+)
+
+set(INTERFACE
+    interface/BottomLevelASMtl.h
+    interface/BufferMtl.h
+    interface/BufferViewMtl.h
+    interface/CommandQueueMtl.h
+    interface/DeviceContextMtl.h
+    interface/DeviceMemoryMtl.h
+    interface/EngineFactoryMtl.h
+    interface/FenceMtl.h
+    interface/PipelineStateCacheMtl.h
+    interface/PipelineStateMtl.h
+    interface/QueryMtl.h
+    interface/RasterizationRateMapMtl.h
+    interface/RenderDeviceMtl.h
+    interface/SamplerMtl.h
+    interface/ShaderMtl.h
+    interface/ShaderResourceBindingMtl.h
+    interface/SwapChainMtl.h
+    interface/TextureMtl.h
+    interface/TextureViewMtl.h
+    interface/TopLevelASMtl.h
+)
+
+set(SRC
+    src/PipelineResourceSignatureMtlImpl.mm
+    src/PipelineStateMtlImpl.mm
+    src/RenderDeviceMtlImpl.mm
+    src/RenderPassMtlImpl.mm
+    src/ShaderMtlImpl.mm
+)
+
+# Metal backend is only available on Apple platforms
+if(APPLE)
+    add_library(Diligent-GraphicsEngineMetalInterface INTERFACE)
+    target_link_libraries(Diligent-GraphicsEngineMetalInterface 
+        INTERFACE 
+        Diligent-GraphicsEngineInterface
+    )
+    target_include_directories(Diligent-GraphicsEngineMetalInterface 
+        INTERFACE 
+        interface
+    )
+
+    add_library(Diligent-GraphicsEngineMetal-static STATIC
+        ${SRC} 
+        ${INTERFACE} 
+        ${INCLUDE}
+        readme.md
+    )
+
+    target_include_directories(Diligent-GraphicsEngineMetal-static
+        PRIVATE
+            include
+    )
+
+    target_link_libraries(Diligent-GraphicsEngineMetal-static
+        PRIVATE
+            Diligent-BuildSettings
+            Diligent-Common
+            Diligent-GraphicsEngine
+            Diligent-GraphicsEngineNextGenBase
+            Diligent-TargetPlatform
+            Diligent-ShaderTools
+            "-framework Metal"
+            "-framework Foundation"
+        PUBLIC
+            Diligent-GraphicsEngineMetalInterface
+    )
+
+    set_target_properties(Diligent-GraphicsEngineMetal-static PROPERTIES
+        FOLDER DiligentCore/Graphics
+    )
+
+    source_group("src" FILES ${SRC})
+    source_group("include" FILES ${INCLUDE})
+    source_group("interface" FILES ${INTERFACE})
+
+    set_source_files_properties(${SRC} PROPERTIES
+        COMPILE_FLAGS "-x objective-c++"
+    )
+
+    target_compile_definitions(Diligent-GraphicsEngineMetal-static 
+        PRIVATE 
+        DILIGENT_ENGINE_DLL=0
+    )
+
+else()
+    message(STATUS "Metal backend is only available on Apple platforms - skipping")
+endif()
