@@ -581,15 +581,18 @@ void SerializedShaderImpl::CreateShaderMtl(IReferenceCounters*     pRefCounters,
     const auto& MtlProps         = m_pDevice->GetMtlProperties();
     auto*       pRenderDeviceMtl = m_pDevice->GetRenderDevice(RENDER_DEVICE_TYPE_METAL);
 
+    // Prepare compiler output handling
+    // If ppCompilerOutput is already set from another API, we need to collect both outputs
+    IDataBlob* pMtlCompilerOutput = nullptr;
+    IDataBlob** ppMtlOutput = (ppCompilerOutput == nullptr || *ppCompilerOutput == nullptr) ? ppCompilerOutput : &pMtlCompilerOutput;
+
     ShaderMtlImpl::CreateInfo MtlShaderCI
     {
         DeviceInfo,
         AdapterInfo,
         nullptr, // pDearchiveData
 
-        // Do not overwrite compiler output from other APIs.
-        // TODO: collect all outputs.
-        ppCompilerOutput == nullptr || *ppCompilerOutput == nullptr ? ppCompilerOutput : nullptr,
+        ppMtlOutput,
 
         m_pDevice->GetShaderCompilationThreadPool(),
 
@@ -602,6 +605,30 @@ void SerializedShaderImpl::CreateShaderMtl(IReferenceCounters*     pRefCounters,
     };
 
     CreateShader<CompiledShaderMtl>(Type, pRefCounters, ShaderCI, MtlShaderCI, pRenderDeviceMtl);
+
+    // If we have compiler outputs from multiple APIs, combine them
+    if (pMtlCompilerOutput != nullptr && ppCompilerOutput != nullptr && *ppCompilerOutput != nullptr)
+    {
+        // Combine existing output with Metal output
+        RefCntAutoPtr<IDataBlob> pExistingOutput{*ppCompilerOutput};
+        RefCntAutoPtr<IDataBlob> pCombinedOutput;
+        
+        // Create combined output with separator
+        String CombinedText;
+        if (pExistingOutput->GetSize() > 0)
+        {
+            CombinedText.append(static_cast<const char*>(pExistingOutput->GetConstDataPtr()), pExistingOutput->GetSize());
+            CombinedText.append("\n\n--- Metal Compiler Output ---\n\n");
+        }
+        if (pMtlCompilerOutput->GetSize() > 0)
+        {
+            CombinedText.append(static_cast<const char*>(pMtlCompilerOutput->GetConstDataPtr()), pMtlCompilerOutput->GetSize());
+        }
+        
+        CreateDataBlob(CombinedText.size(), CombinedText.data(), &pCombinedOutput);
+        *ppCompilerOutput = pCombinedOutput.Detach();
+        pMtlCompilerOutput->Release();
+    }
 }
 
 void SerializationDeviceImpl::GetPipelineResourceBindingsMtl(const PipelineResourceBindingAttribs& Info,
