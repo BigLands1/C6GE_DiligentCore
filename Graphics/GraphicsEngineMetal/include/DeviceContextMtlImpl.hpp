@@ -277,6 +277,11 @@ private:
     IPipelineState*              m_pPipelineState     = nullptr;
     IBuffer*                     m_pIndexBuffer       = nullptr;
     Uint64                       m_IndexBufferOffset  = 0;
+    
+    IRenderPass*                 m_pActiveRenderPass  = nullptr;
+    const OptimizedClearValue*   m_pClearValues       = nullptr;
+    Uint32                       m_ClearValueCount    = 0;
+    
     IObject*                     m_pUserData          = nullptr;
 };
 

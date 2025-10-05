@@ -30,6 +30,10 @@
 #include "BufferMtlImpl.hpp"
 #include "TextureMtlImpl.hpp"
 #include "TextureViewMtlImpl.hpp"
+#include "RenderPassMtlImpl.hpp"
+#include "QueryMtlImpl.hpp"
+#include "FenceMtlImpl.hpp"
+#include "GraphicsAccessories.hpp"
 #import <Metal/Metal.h>
 
 namespace Diligent
@@ -160,9 +164,27 @@ void DeviceContextMtlImpl::TransitionShaderResources(IShaderResourceBinding* pSh
 
 void DeviceContextMtlImpl::CommitShaderResources(IShaderResourceBinding* pShaderResourceBinding, RESOURCE_STATE_TRANSITION_MODE StateTransitionMode)
 {
-    // Metal resource binding would be implemented here
-    // This would involve setting textures, buffers, and samplers
-    // For now, this is a stub
+    if (pShaderResourceBinding == nullptr)
+        return;
+    
+    // Metal resource binding is done through shader resource binding object
+    // In a full implementation, this would:
+    // 1. Iterate through bound resources in the shader resource binding
+    // 2. Call setBuffer, setTexture, setSampler on the appropriate encoder
+    // 3. Set resources for vertex, fragment, and/or compute shaders
+    
+    // For now, this provides the interface for future full implementation
+    // Actual binding would look like:
+    // if (m_MtlRenderEncoder != nil)
+    // {
+    //     for each buffer: [m_MtlRenderEncoder setVertexBuffer:mtlBuffer offset:0 atIndex:index];
+    //     for each texture: [m_MtlRenderEncoder setFragmentTexture:mtlTexture atIndex:index];
+    //     for each sampler: [m_MtlRenderEncoder setFragmentSamplerState:mtlSampler atIndex:index];
+    // }
+    // else if (m_MtlComputeEncoder != nil)
+    // {
+    //     Similar binding for compute resources
+    // }
 }
 
 void DeviceContextMtlImpl::SetStencilRef(Uint32 StencilRef)
@@ -297,9 +319,12 @@ void DeviceContextMtlImpl::BeginRenderPass(const BeginRenderPassAttribs& Attribs
     EndAllEncoders();
     EnsureCommandBuffer();
     
-    // Metal doesn't use explicit render pass objects
-    // Render pass is configured via MTLRenderPassDescriptor when creating render encoder
-    // For now, this is a placeholder - full implementation would parse Attribs
+    // Metal doesn't use separate framebuffer objects
+    // For now, store the render pass for reference
+    // Actual encoding happens when SetRenderTargets is called or draw commands are issued
+    m_pActiveRenderPass = Attribs.pRenderPass;
+    m_pClearValues = Attribs.pClearValues;
+    m_ClearValueCount = Attribs.ClearValueCount;
 }
 
 void DeviceContextMtlImpl::NextSubpass()
@@ -353,12 +378,51 @@ void DeviceContextMtlImpl::DrawIndexed(const DrawIndexedAttribs& Attribs)
 
 void DeviceContextMtlImpl::DrawIndirect(const DrawIndirectAttribs& Attribs)
 {
-    // Stub: Draw indirect - requires more complex buffer setup
+    if (m_MtlRenderEncoder == nil || Attribs.pAttribsBuffer == nullptr)
+        return;
+    
+    auto* pIndirectBufferMtl = static_cast<BufferMtlImpl*>(Attribs.pAttribsBuffer);
+    id<MTLBuffer> mtlIndirectBuffer = pIndirectBufferMtl->GetMtlResource();
+    
+    if (mtlIndirectBuffer != nil)
+    {
+        // DrawAttribsBuffer offset must be offset in the buffer where draw commands start
+        NSUInteger offset = Attribs.DrawArgsOffset;
+        
+        for (Uint32 i = 0; i < Attribs.DrawCount; ++i)
+        {
+            [m_MtlRenderEncoder drawPrimitives:MTLPrimitiveTypeTriangle
+                                indirectBuffer:mtlIndirectBuffer
+                          indirectBufferOffset:offset + i * Attribs.DrawArgsStride];
+        }
+    }
 }
 
 void DeviceContextMtlImpl::DrawIndexedIndirect(const DrawIndexedIndirectAttribs& Attribs)
 {
-    // Stub: Draw indexed indirect - requires more complex buffer setup
+    if (m_MtlRenderEncoder == nil || Attribs.pAttribsBuffer == nullptr || m_pIndexBuffer == nullptr)
+        return;
+    
+    auto* pIndirectBufferMtl = static_cast<BufferMtlImpl*>(Attribs.pAttribsBuffer);
+    id<MTLBuffer> mtlIndirectBuffer = pIndirectBufferMtl->GetMtlResource();
+    
+    auto* pIndexBufferMtl = static_cast<BufferMtlImpl*>(m_pIndexBuffer);
+    id<MTLBuffer> mtlIndexBuffer = pIndexBufferMtl->GetMtlResource();
+    
+    if (mtlIndirectBuffer != nil && mtlIndexBuffer != nil)
+    {
+        NSUInteger offset = Attribs.DrawArgsOffset;
+        
+        for (Uint32 i = 0; i < Attribs.DrawCount; ++i)
+        {
+            [m_MtlRenderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
+                                            indexType:MTLIndexTypeUInt32
+                                          indexBuffer:mtlIndexBuffer
+                                    indexBufferOffset:m_IndexBufferOffset
+                                       indirectBuffer:mtlIndirectBuffer
+                                 indirectBufferOffset:offset + i * Attribs.DrawArgsStride];
+        }
+    }
 }
 
 void DeviceContextMtlImpl::DrawMesh(const DrawMeshAttribs& Attribs)
@@ -403,19 +467,111 @@ void DeviceContextMtlImpl::DispatchCompute(const DispatchComputeAttribs& Attribs
 
 void DeviceContextMtlImpl::DispatchComputeIndirect(const DispatchComputeIndirectAttribs& Attribs)
 {
-    // Stub: Dispatch compute indirect
+    if (m_pPipelineState == nullptr || Attribs.pAttribsBuffer == nullptr)
+        return;
+    
+    EndAllEncoders();
+    EnsureCommandBuffer();
+    
+    m_MtlComputeEncoder = [m_MtlCommandBuffer computeCommandEncoder];
+    [m_MtlComputeEncoder retain];
+    
+    auto* pPSOMtl = static_cast<PipelineStateMtlImpl*>(m_pPipelineState);
+    id<MTLComputePipelineState> mtlPipeline = pPSOMtl->GetMtlComputePipeline();
+    
+    if (mtlPipeline != nil)
+    {
+        [m_MtlComputeEncoder setComputePipelineState:mtlPipeline];
+        
+        auto* pIndirectBufferMtl = static_cast<BufferMtlImpl*>(Attribs.pAttribsBuffer);
+        id<MTLBuffer> mtlIndirectBuffer = pIndirectBufferMtl->GetMtlResource();
+        
+        if (mtlIndirectBuffer != nil)
+        {
+            // Get max threads per threadgroup from pipeline
+            NSUInteger maxThreadsPerThreadgroup = [mtlPipeline maxTotalThreadsPerThreadgroup];
+            
+            [m_MtlComputeEncoder dispatchThreadgroupsWithIndirectBuffer:mtlIndirectBuffer
+                                                   indirectBufferOffset:Attribs.DispatchArgsByteOffset
+                                                  threadsPerThreadgroup:MTLSizeMake(maxThreadsPerThreadgroup, 1, 1)];
+        }
+    }
+    
+    [m_MtlComputeEncoder endEncoding];
+    [m_MtlComputeEncoder release];
+    m_MtlComputeEncoder = nil;
 }
 
 void DeviceContextMtlImpl::ClearDepthStencil(ITextureView* pView, CLEAR_DEPTH_STENCIL_FLAGS ClearFlags, float fDepth, Uint8 Stencil, RESOURCE_STATE_TRANSITION_MODE StateTransitionMode)
 {
-    // Clear operations in Metal are typically done via load actions in render pass
-    // For explicit clears, would need to create temporary render pass
+    if (pView == nullptr)
+        return;
+    
+    EndAllEncoders();
+    EnsureCommandBuffer();
+    
+    @autoreleasepool
+    {
+        auto* pDSVMtl = static_cast<TextureViewMtlImpl*>(pView);
+        id<MTLTexture> mtlTexture = pDSVMtl->GetMtlTexture();
+        
+        if (mtlTexture == nil)
+            return;
+        
+        MTLRenderPassDescriptor* renderPassDesc = [MTLRenderPassDescriptor renderPassDescriptor];
+        
+        // Configure depth attachment
+        if (ClearFlags & CLEAR_DEPTH_FLAG)
+        {
+            renderPassDesc.depthAttachment.texture = mtlTexture;
+            renderPassDesc.depthAttachment.loadAction = MTLLoadActionClear;
+            renderPassDesc.depthAttachment.storeAction = MTLStoreActionStore;
+            renderPassDesc.depthAttachment.clearDepth = fDepth;
+        }
+        
+        // Configure stencil attachment
+        if (ClearFlags & CLEAR_STENCIL_FLAG)
+        {
+            renderPassDesc.stencilAttachment.texture = mtlTexture;
+            renderPassDesc.stencilAttachment.loadAction = MTLLoadActionClear;
+            renderPassDesc.stencilAttachment.storeAction = MTLStoreActionStore;
+            renderPassDesc.stencilAttachment.clearStencil = Stencil;
+        }
+        
+        // Create a temporary render encoder just to perform the clear
+        id<MTLRenderCommandEncoder> tempEncoder = [m_MtlCommandBuffer renderCommandEncoderWithDescriptor:renderPassDesc];
+        [tempEncoder endEncoding];
+    }
 }
 
 void DeviceContextMtlImpl::ClearRenderTarget(ITextureView* pView, const float* RGBA, RESOURCE_STATE_TRANSITION_MODE StateTransitionMode)
 {
-    // Clear operations in Metal are typically done via load actions in render pass
-    // For explicit clears, would need to create temporary render pass
+    if (pView == nullptr || RGBA == nullptr)
+        return;
+    
+    EndAllEncoders();
+    EnsureCommandBuffer();
+    
+    @autoreleasepool
+    {
+        auto* pRTVMtl = static_cast<TextureViewMtlImpl*>(pView);
+        id<MTLTexture> mtlTexture = pRTVMtl->GetMtlTexture();
+        
+        if (mtlTexture == nil)
+            return;
+        
+        MTLRenderPassDescriptor* renderPassDesc = [MTLRenderPassDescriptor renderPassDescriptor];
+        
+        // Configure color attachment
+        renderPassDesc.colorAttachments[0].texture = mtlTexture;
+        renderPassDesc.colorAttachments[0].loadAction = MTLLoadActionClear;
+        renderPassDesc.colorAttachments[0].storeAction = MTLStoreActionStore;
+        renderPassDesc.colorAttachments[0].clearColor = MTLClearColorMake(RGBA[0], RGBA[1], RGBA[2], RGBA[3]);
+        
+        // Create a temporary render encoder just to perform the clear
+        id<MTLRenderCommandEncoder> tempEncoder = [m_MtlCommandBuffer renderCommandEncoderWithDescriptor:renderPassDesc];
+        [tempEncoder endEncoding];
+    }
 }
 
 void DeviceContextMtlImpl::UpdateBuffer(IBuffer* pBuffer, Uint64 Offset, Uint64 Size, const void* pData, RESOURCE_STATE_TRANSITION_MODE StateTransitionMode)
@@ -585,12 +741,40 @@ void DeviceContextMtlImpl::ExecuteCommandLists(Uint32 NumCommandLists, ICommandL
 
 void DeviceContextMtlImpl::EnqueueSignal(IFence* pFence, Uint64 Value)
 {
-    // Stub: Enqueue signal
+    if (pFence == nullptr)
+        return;
+    
+    EnsureCommandBuffer();
+    
+    auto* pFenceMtl = static_cast<FenceMtlImpl*>(pFence);
+    
+    if (@available(macOS 10.14, iOS 12.0, tvOS 12.0, *))
+    {
+        id<MTLSharedEvent> sharedEvent = pFenceMtl->GetMtlSharedEvent();
+        if (sharedEvent != nil && m_MtlCommandBuffer != nil)
+        {
+            [m_MtlCommandBuffer encodeSignalEvent:sharedEvent value:Value];
+        }
+    }
 }
 
 void DeviceContextMtlImpl::DeviceWaitForFence(IFence* pFence, Uint64 Value)
 {
-    // Stub: Device wait for fence
+    if (pFence == nullptr)
+        return;
+    
+    EnsureCommandBuffer();
+    
+    auto* pFenceMtl = static_cast<FenceMtlImpl*>(pFence);
+    
+    if (@available(macOS 10.14, iOS 12.0, tvOS 12.0, *))
+    {
+        id<MTLSharedEvent> sharedEvent = pFenceMtl->GetMtlSharedEvent();
+        if (sharedEvent != nil && m_MtlCommandBuffer != nil)
+        {
+            [m_MtlCommandBuffer encodeWaitForEvent:sharedEvent value:Value];
+        }
+    }
 }
 
 void DeviceContextMtlImpl::WaitForIdle()
@@ -608,12 +792,50 @@ void DeviceContextMtlImpl::WaitForIdle()
 
 void DeviceContextMtlImpl::BeginQuery(IQuery* pQuery)
 {
-    // Stub: Begin query
+    if (pQuery == nullptr)
+        return;
+    
+    // Metal queries are handled differently depending on query type
+    // For timestamp queries, we sample at begin time
+    // For occlusion queries, we start visibility testing
+    auto* pQueryMtl = static_cast<QueryMtlImpl*>(pQuery);
+    const QueryDesc& Desc = pQueryMtl->GetDesc();
+    
+    if (Desc.Type == QUERY_TYPE_OCCLUSION)
+    {
+        // Metal occlusion queries use visibility result mode
+        if (m_MtlRenderEncoder != nil)
+        {
+            // Store query for tracking
+            // Actual visibility counting would be set via setVisibilityResultMode
+        }
+    }
 }
 
 void DeviceContextMtlImpl::EndQuery(IQuery* pQuery)
 {
-    // Stub: End query
+    if (pQuery == nullptr)
+        return;
+    
+    // Metal queries are completed when command buffer finishes
+    // For timestamp queries, we sample at end time
+    // For occlusion queries, we stop visibility testing
+    auto* pQueryMtl = static_cast<QueryMtlImpl*>(pQuery);
+    const QueryDesc& Desc = pQueryMtl->GetDesc();
+    
+    if (Desc.Type == QUERY_TYPE_TIMESTAMP)
+    {
+        // Record timestamp - Metal uses GPU timestamps
+        // Would need MTLCounterSampleBuffer for actual implementation
+    }
+    else if (Desc.Type == QUERY_TYPE_OCCLUSION)
+    {
+        // End occlusion query
+        if (m_MtlRenderEncoder != nil)
+        {
+            // Visibility results would be written to buffer
+        }
+    }
 }
 
 void DeviceContextMtlImpl::Flush()
