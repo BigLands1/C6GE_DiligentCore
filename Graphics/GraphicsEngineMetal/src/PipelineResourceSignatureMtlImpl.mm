@@ -37,12 +37,14 @@ PipelineResourceSignatureMtlImpl::PipelineResourceSignatureMtlImpl(IReferenceCou
                                                                    bool                                 IsDeviceInternal) :
     TPRSBase{pRefCounters, pRenderDeviceMtl, Desc, ShaderStages, IsDeviceInternal}
 {
-    // TODO: Implement pipeline resource signature initialization
+    // Metal doesn't have explicit resource signature objects
+    // Resource layout is defined by shader reflection
+    // Binding is done at draw/dispatch time via setBuffer/setTexture/setSampler
 }
 
 PipelineResourceSignatureMtlImpl::~PipelineResourceSignatureMtlImpl()
 {
-    // TODO: Cleanup pipeline resource signature resources
+    // No Metal-specific cleanup needed
 }
 
 } // namespace Diligent
