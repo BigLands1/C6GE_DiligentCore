@@ -26,6 +26,9 @@
 
 #include "DeviceContextMtlImpl.hpp"
 #include "RenderDeviceMtlImpl.hpp"
+#include "PipelineStateMtlImpl.hpp"
+#include "BufferMtlImpl.hpp"
+#include "TextureViewMtlImpl.hpp"
 #import <Metal/Metal.h>
 
 namespace Diligent
@@ -37,16 +40,44 @@ DeviceContextMtlImpl::DeviceContextMtlImpl(IReferenceCounters*      pRefCounters
                                            const DeviceContextDesc& Desc) :
     TDeviceContextBase{pRefCounters, pDevice, Desc}
 {
-    // This is a stub implementation
-    // Full command encoding implementation would be added here
+    auto* pDeviceMtl = GetDevice();
+    id<MTLDevice> mtlDevice = pDeviceMtl->GetMtlDevice();
+    m_MtlCommandQueue = [mtlDevice newCommandQueue];
 }
 
 DeviceContextMtlImpl::~DeviceContextMtlImpl()
 {
+    if (m_MtlRenderEncoder != nil)
+    {
+        [m_MtlRenderEncoder endEncoding];
+        [m_MtlRenderEncoder release];
+        m_MtlRenderEncoder = nil;
+    }
+    
+    if (m_MtlComputeEncoder != nil)
+    {
+        [m_MtlComputeEncoder endEncoding];
+        [m_MtlComputeEncoder release];
+        m_MtlComputeEncoder = nil;
+    }
+    
+    if (m_MtlBlitEncoder != nil)
+    {
+        [m_MtlBlitEncoder endEncoding];
+        [m_MtlBlitEncoder release];
+        m_MtlBlitEncoder = nil;
+    }
+    
     if (m_MtlCommandBuffer != nil)
     {
         [m_MtlCommandBuffer release];
         m_MtlCommandBuffer = nil;
+    }
+    
+    if (m_MtlCommandQueue != nil)
+    {
+        [m_MtlCommandQueue release];
+        m_MtlCommandQueue = nil;
     }
 }
 
@@ -55,9 +86,69 @@ void DeviceContextMtlImpl::Begin(Uint32 ImmediateContextId)
     TDeviceContextBase::Begin(ImmediateContextId, 0);
 }
 
+void DeviceContextMtlImpl::EnsureCommandBuffer()
+{
+    if (m_MtlCommandBuffer == nil)
+    {
+        m_MtlCommandBuffer = [m_MtlCommandQueue commandBuffer];
+        [m_MtlCommandBuffer retain];
+    }
+}
+
+void DeviceContextMtlImpl::EndAllEncoders()
+{
+    if (m_MtlRenderEncoder != nil)
+    {
+        [m_MtlRenderEncoder endEncoding];
+        [m_MtlRenderEncoder release];
+        m_MtlRenderEncoder = nil;
+    }
+    
+    if (m_MtlComputeEncoder != nil)
+    {
+        [m_MtlComputeEncoder endEncoding];
+        [m_MtlComputeEncoder release];
+        m_MtlComputeEncoder = nil;
+    }
+    
+    if (m_MtlBlitEncoder != nil)
+    {
+        [m_MtlBlitEncoder endEncoding];
+        [m_MtlBlitEncoder release];
+        m_MtlBlitEncoder = nil;
+    }
+}
+
 void DeviceContextMtlImpl::SetPipelineState(IPipelineState* pPipelineState)
 {
-    // Stub: Set pipeline state
+    m_pPipelineState = pPipelineState;
+    
+    if (m_MtlRenderEncoder != nil && pPipelineState != nullptr)
+    {
+        auto* pPSOMtl = static_cast<PipelineStateMtlImpl*>(pPipelineState);
+        
+        id<MTLRenderPipelineState> mtlPipeline = pPSOMtl->GetMtlRenderPipeline();
+        if (mtlPipeline != nil)
+        {
+            [m_MtlRenderEncoder setRenderPipelineState:mtlPipeline];
+        }
+        
+        id<MTLDepthStencilState> mtlDepthStencil = pPSOMtl->GetMtlDepthStencilState();
+        if (mtlDepthStencil != nil)
+        {
+            [m_MtlRenderEncoder setDepthStencilState:mtlDepthStencil];
+        }
+    }
+    else if (m_MtlComputeEncoder != nil && pPipelineState != nullptr)
+    {
+        auto* pPSOMtl = static_cast<PipelineStateMtlImpl*>(pPipelineState);
+        
+        id<MTLComputePipelineState> mtlPipeline = pPSOMtl->GetMtlComputePipeline();
+        if (mtlPipeline != nil)
+        {
+            [m_MtlComputeEncoder setComputePipelineState:mtlPipeline];
+        }
+    }
 }
 
 void DeviceContextMtlImpl::TransitionShaderResources(IShaderResourceBinding* pShaderResourceBinding)
@@ -82,67 +173,179 @@ void DeviceContextMtlImpl::SetBlendFactors(const float* pBlendFactors)
 
 void DeviceContextMtlImpl::SetVertexBuffers(Uint32 StartSlot, Uint32 NumBuffersSet, IBuffer* const* ppBuffers, const Uint64* pOffsets, RESOURCE_STATE_TRANSITION_MODE StateTransitionMode, SET_VERTEX_BUFFERS_FLAGS Flags)
 {
-    // Stub: Set vertex buffers
+    if (m_MtlRenderEncoder == nil)
+        return;
+    
+    for (Uint32 i = 0; i < NumBuffersSet; ++i)
+    {
+        if (ppBuffers[i] != nullptr)
+        {
+            auto* pBufferMtl = static_cast<BufferMtlImpl*>(ppBuffers[i]);
+            id<MTLBuffer> mtlBuffer = pBufferMtl->GetMtlResource();
+            Uint64 offset = pOffsets ? pOffsets[i] : 0;
+            
+            [m_MtlRenderEncoder setVertexBuffer:mtlBuffer
+                                         offset:offset
+                                        atIndex:StartSlot + i];
+        }
+    }
 }
 
 void DeviceContextMtlImpl::InvalidateState()
 {
-    // Stub: Invalidate state
+    // Invalidate cached state
+    m_pPipelineState = nullptr;
 }
 
 void DeviceContextMtlImpl::SetIndexBuffer(IBuffer* pIndexBuffer, Uint64 ByteOffset, RESOURCE_STATE_TRANSITION_MODE StateTransitionMode)
 {
-    // Stub: Set index buffer
+    // Metal doesn't have a separate SetIndexBuffer call
+    // Index buffer is specified in draw calls
+    // Store for later use in DrawIndexed
+    m_pIndexBuffer = pIndexBuffer;
+    m_IndexBufferOffset = ByteOffset;
 }
 
 void DeviceContextMtlImpl::SetViewports(Uint32 NumViewports, const Viewport* pViewports, Uint32 RTWidth, Uint32 RTHeight)
 {
-    // Stub: Set viewports
+    if (m_MtlRenderEncoder == nil || NumViewports == 0)
+        return;
+    
+    MTLViewport mtlViewport;
+    mtlViewport.originX = pViewports[0].TopLeftX;
+    mtlViewport.originY = pViewports[0].TopLeftY;
+    mtlViewport.width   = pViewports[0].Width;
+    mtlViewport.height  = pViewports[0].Height;
+    mtlViewport.znear   = pViewports[0].MinDepth;
+    mtlViewport.zfar    = pViewports[0].MaxDepth;
+    
+    [m_MtlRenderEncoder setViewport:mtlViewport];
 }
 
 void DeviceContextMtlImpl::SetScissorRects(Uint32 NumRects, const Rect* pRects, Uint32 RTWidth, Uint32 RTHeight)
 {
-    // Stub: Set scissor rects
+    if (m_MtlRenderEncoder == nil || NumRects == 0)
+        return;
+    
+    MTLScissorRect mtlScissor;
+    mtlScissor.x      = pRects[0].left;
+    mtlScissor.y      = pRects[0].top;
+    mtlScissor.width  = pRects[0].right - pRects[0].left;
+    mtlScissor.height = pRects[0].bottom - pRects[0].top;
+    
+    [m_MtlRenderEncoder setScissorRect:mtlScissor];
 }
 
 void DeviceContextMtlImpl::SetRenderTargets(Uint32 NumRenderTargets, ITextureView* const* ppRenderTargets, ITextureView* pDepthStencil, RESOURCE_STATE_TRANSITION_MODE StateTransitionMode)
 {
-    // Stub: Set render targets
+    EndAllEncoders();
+    EnsureCommandBuffer();
+    
+    @autoreleasepool
+    {
+        MTLRenderPassDescriptor* renderPassDesc = [MTLRenderPassDescriptor renderPassDescriptor];
+        
+        for (Uint32 i = 0; i < NumRenderTargets; ++i)
+        {
+            if (ppRenderTargets[i] != nullptr)
+            {
+                auto* pRTVMtl = static_cast<TextureViewMtlImpl*>(ppRenderTargets[i]);
+                id<MTLTexture> mtlTexture = pRTVMtl->GetMtlTexture();
+                
+                renderPassDesc.colorAttachments[i].texture = mtlTexture;
+                renderPassDesc.colorAttachments[i].loadAction = MTLLoadActionLoad;
+                renderPassDesc.colorAttachments[i].storeAction = MTLStoreActionStore;
+            }
+        }
+        
+        if (pDepthStencil != nullptr)
+        {
+            auto* pDSVMtl = static_cast<TextureViewMtlImpl*>(pDepthStencil);
+            id<MTLTexture> mtlTexture = pDSVMtl->GetMtlTexture();
+            
+            renderPassDesc.depthAttachment.texture = mtlTexture;
+            renderPassDesc.depthAttachment.loadAction = MTLLoadActionLoad;
+            renderPassDesc.depthAttachment.storeAction = MTLStoreActionStore;
+        }
+        
+        m_MtlRenderEncoder = [m_MtlCommandBuffer renderCommandEncoderWithDescriptor:renderPassDesc];
+        [m_MtlRenderEncoder retain];
+        
+        // Reapply pipeline state if set
+        if (m_pPipelineState != nullptr)
+        {
+            SetPipelineState(m_pPipelineState);
+        }
+    }
 }
 
 void DeviceContextMtlImpl::BeginRenderPass(const BeginRenderPassAttribs& Attribs)
 {
-    // Stub: Begin render pass
+    EndAllEncoders();
+    EnsureCommandBuffer();
+    
+    // Metal doesn't use explicit render pass objects
+    // Render pass is configured via MTLRenderPassDescriptor when creating render encoder
+    // For now, this is a placeholder - full implementation would parse Attribs
 }
 
 void DeviceContextMtlImpl::NextSubpass()
 {
-    // Stub: Next subpass
+    // Metal doesn't support subpasses like Vulkan
+    // This would require ending current encoder and starting a new one
 }
 
 void DeviceContextMtlImpl::EndRenderPass()
 {
-    // Stub: End render pass
+    if (m_MtlRenderEncoder != nil)
+    {
+        [m_MtlRenderEncoder endEncoding];
+        [m_MtlRenderEncoder release];
+        m_MtlRenderEncoder = nil;
+    }
 }
 
 void DeviceContextMtlImpl::Draw(const DrawAttribs& Attribs)
 {
-    // Stub: Draw
+    if (m_MtlRenderEncoder == nil)
+        return;
+    
+    [m_MtlRenderEncoder drawPrimitives:MTLPrimitiveTypeTriangle
+                           vertexStart:Attribs.StartVertexLocation
+                           vertexCount:Attribs.NumVertices
+                         instanceCount:Attribs.NumInstances
+                          baseInstance:Attribs.FirstInstanceLocation];
 }
 
 void DeviceContextMtlImpl::DrawIndexed(const DrawIndexedAttribs& Attribs)
 {
-    // Stub: Draw indexed
+    if (m_MtlRenderEncoder == nil || m_pIndexBuffer == nil)
+        return;
+    
+    auto* pIndexBufferMtl = static_cast<BufferMtlImpl*>(m_pIndexBuffer);
+    id<MTLBuffer> mtlIndexBuffer = pIndexBufferMtl->GetMtlResource();
+    
+    if (mtlIndexBuffer != nil)
+    {
+        [m_MtlRenderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
+                                       indexCount:Attribs.NumIndices
+                                        indexType:MTLIndexTypeUInt32
+                                      indexBuffer:mtlIndexBuffer
+                                indexBufferOffset:m_IndexBufferOffset + Attribs.FirstIndexLocation * sizeof(Uint32)
+                                    instanceCount:Attribs.NumInstances
+                                       baseVertex:Attribs.BaseVertex
+                                     baseInstance:Attribs.FirstInstanceLocation];
+    }
 }
 
 void DeviceContextMtlImpl::DrawIndirect(const DrawIndirectAttribs& Attribs)
 {
-    // Stub: Draw indirect
+    // Stub: Draw indirect - requires more complex buffer setup
 }
 
 void DeviceContextMtlImpl::DrawIndexedIndirect(const DrawIndexedIndirectAttribs& Attribs)
 {
-    // Stub: Draw indexed indirect
+    // Stub: Draw indexed indirect - requires more complex buffer setup
 }
 
 void DeviceContextMtlImpl::DrawMesh(const DrawMeshAttribs& Attribs)
@@ -157,7 +360,32 @@ void DeviceContextMtlImpl::DrawMeshIndirect(const DrawMeshIndirectAttribs& Attri
 
 void DeviceContextMtlImpl::DispatchCompute(const DispatchComputeAttribs& Attribs)
 {
-    // Stub: Dispatch compute
+    EndAllEncoders();
+    EnsureCommandBuffer();
+    
+    if (m_pPipelineState == nullptr)
+        return;
+    
+    m_MtlComputeEncoder = [m_MtlCommandBuffer computeCommandEncoder];
+    [m_MtlComputeEncoder retain];
+    
+    auto* pPSOMtl = static_cast<PipelineStateMtlImpl*>(m_pPipelineState);
+    id<MTLComputePipelineState> mtlPipeline = pPSOMtl->GetMtlComputePipeline();
+    
+    if (mtlPipeline != nil)
+    {
+        [m_MtlComputeEncoder setComputePipelineState:mtlPipeline];
+        
+        MTLSize threadgroupSize = MTLSizeMake(Attribs.ThreadGroupCountX, Attribs.ThreadGroupCountY, Attribs.ThreadGroupCountZ);
+        MTLSize threadgroups = MTLSizeMake(1, 1, 1);
+        
+        [m_MtlComputeEncoder dispatchThreadgroups:threadgroups
+                            threadsPerThreadgroup:threadgroupSize];
+    }
+    
+    [m_MtlComputeEncoder endEncoding];
+    [m_MtlComputeEncoder release];
+    m_MtlComputeEncoder = nil;
 }
 
 void DeviceContextMtlImpl::DispatchComputeIndirect(const DispatchComputeIndirectAttribs& Attribs)
@@ -167,22 +395,60 @@ void DeviceContextMtlImpl::DispatchComputeIndirect(const DispatchComputeIndirect
 
 void DeviceContextMtlImpl::ClearDepthStencil(ITextureView* pView, CLEAR_DEPTH_STENCIL_FLAGS ClearFlags, float fDepth, Uint8 Stencil, RESOURCE_STATE_TRANSITION_MODE StateTransitionMode)
 {
-    // Stub: Clear depth stencil
+    // Clear operations in Metal are typically done via load actions in render pass
+    // For explicit clears, would need to create temporary render pass
 }
 
 void DeviceContextMtlImpl::ClearRenderTarget(ITextureView* pView, const float* RGBA, RESOURCE_STATE_TRANSITION_MODE StateTransitionMode)
 {
-    // Stub: Clear render target
+    // Clear operations in Metal are typically done via load actions in render pass
+    // For explicit clears, would need to create temporary render pass
 }
 
 void DeviceContextMtlImpl::UpdateBuffer(IBuffer* pBuffer, Uint64 Offset, Uint64 Size, const void* pData, RESOURCE_STATE_TRANSITION_MODE StateTransitionMode)
 {
-    // Stub: Update buffer
+    if (pBuffer == nullptr || pData == nullptr || Size == 0)
+        return;
+    
+    auto* pBufferMtl = static_cast<BufferMtlImpl*>(pBuffer);
+    id<MTLBuffer> mtlBuffer = pBufferMtl->GetMtlResource();
+    
+    if (mtlBuffer != nil)
+    {
+        void* pMapped = [mtlBuffer contents];
+        if (pMapped != nullptr)
+        {
+            memcpy(static_cast<uint8_t*>(pMapped) + Offset, pData, Size);
+        }
+    }
 }
 
 void DeviceContextMtlImpl::CopyBuffer(IBuffer* pSrcBuffer, Uint64 SrcOffset, RESOURCE_STATE_TRANSITION_MODE SrcBufferTransitionMode, IBuffer* pDstBuffer, Uint64 DstOffset, Uint64 Size, RESOURCE_STATE_TRANSITION_MODE DstBufferTransitionMode)
 {
-    // Stub: Copy buffer
+    if (pSrcBuffer == nullptr || pDstBuffer == nullptr || Size == 0)
+        return;
+    
+    EndAllEncoders();
+    EnsureCommandBuffer();
+    
+    auto* pSrcBufferMtl = static_cast<BufferMtlImpl*>(pSrcBuffer);
+    auto* pDstBufferMtl = static_cast<BufferMtlImpl*>(pDstBuffer);
+    
+    id<MTLBuffer> srcMtlBuffer = pSrcBufferMtl->GetMtlResource();
+    id<MTLBuffer> dstMtlBuffer = pDstBufferMtl->GetMtlResource();
+    
+    m_MtlBlitEncoder = [m_MtlCommandBuffer blitCommandEncoder];
+    [m_MtlBlitEncoder retain];
+    
+    [m_MtlBlitEncoder copyFromBuffer:srcMtlBuffer
+                        sourceOffset:SrcOffset
+                            toBuffer:dstMtlBuffer
+                   destinationOffset:DstOffset
+                                size:Size];
+    
+    [m_MtlBlitEncoder endEncoding];
+    [m_MtlBlitEncoder release];
+    m_MtlBlitEncoder = nil;
 }
 
 void DeviceContextMtlImpl::MapBuffer(IBuffer* pBuffer, MAP_TYPE MapType, MAP_FLAGS MapFlags, PVoid& pMappedData)
@@ -256,7 +522,14 @@ void DeviceContextMtlImpl::EndQuery(IQuery* pQuery)
 
 void DeviceContextMtlImpl::Flush()
 {
-    // Stub: Flush
+    EndAllEncoders();
+    
+    if (m_MtlCommandBuffer != nil)
+    {
+        [m_MtlCommandBuffer commit];
+        [m_MtlCommandBuffer release];
+        m_MtlCommandBuffer = nil;
+    }
 }
 
 void DeviceContextMtlImpl::BuildBLAS(const BuildBLASAttribs& Attribs)
@@ -311,6 +584,7 @@ void DeviceContextMtlImpl::SetUserData(IObject* pUserData)
 
 id<MTLCommandBuffer> DeviceContextMtlImpl::GetMtlCommandBuffer()
 {
+    EnsureCommandBuffer();
     return m_MtlCommandBuffer;
 }
 
