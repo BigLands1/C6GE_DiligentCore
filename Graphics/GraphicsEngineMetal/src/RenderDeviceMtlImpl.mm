@@ -26,6 +26,7 @@
 
 #include "RenderDeviceMtlImpl.hpp"
 #include "ShaderMtlImpl.hpp"
+#include "DebugUtilities.hpp"
 
 #import <Metal/Metal.h>
 

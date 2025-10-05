@@ -36,6 +36,8 @@
 namespace Diligent
 {
 
+class SerializedShaderImpl;
+
 /// Implementation of a shader object in Metal backend.
 class ShaderMtlImpl final : public ShaderBase<EngineMtlImplTraits>
 {
