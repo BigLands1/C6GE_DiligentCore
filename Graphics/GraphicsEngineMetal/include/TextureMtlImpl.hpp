@@ -67,6 +67,9 @@ public:
     /// Implementation of ITexture::GetNativeHandle() in Metal backend.
     virtual Uint64 DILIGENT_CALL_TYPE GetNativeHandle() override final;
 
+protected:
+    virtual void CreateViewInternal(const struct TextureViewDesc& ViewDesc, ITextureView** ppView, bool bIsDefaultView) override final;
+
 private:
     id<MTLTexture> m_MtlTexture = nil;
 };

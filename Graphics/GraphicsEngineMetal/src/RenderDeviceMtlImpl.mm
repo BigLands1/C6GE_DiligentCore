@@ -105,8 +105,7 @@ void RenderDeviceMtlImpl::CreateFence(const FenceDesc& Desc,
 void RenderDeviceMtlImpl::CreateQuery(const QueryDesc& Desc,
                                       IQuery**         ppQuery)
 {
-    // Query creation not yet fully implemented for Metal backend
-    LOG_ERROR_MESSAGE("CreateQuery is not yet fully implemented for Metal backend");
+    CreateQueryImpl(ppQuery, Desc);
 }
 
 id<MTLDevice> RenderDeviceMtlImpl::GetMtlDevice() const

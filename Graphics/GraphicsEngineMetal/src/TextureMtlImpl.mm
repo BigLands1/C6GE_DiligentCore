@@ -25,6 +25,7 @@
  */
 
 #include "TextureMtlImpl.hpp"
+#include "TextureViewMtlImpl.hpp"
 #include "RenderDeviceMtlImpl.hpp"
 #include "Cast.hpp"
 #import <Metal/Metal.h>
@@ -158,6 +159,31 @@ id<MTLHeap> TextureMtlImpl::GetMtlHeap() const
 Uint64 TextureMtlImpl::GetNativeHandle()
 {
     return BitCast<Uint64>(m_MtlTexture);
+}
+
+void TextureMtlImpl::CreateViewInternal(const TextureViewDesc& ViewDesc, ITextureView** ppView, bool bIsDefaultView)
+{
+    VERIFY(ppView != nullptr, "Null pointer provided");
+    if (!ppView) return;
+    VERIFY(*ppView == nullptr, "Overwriting reference to existing object may cause memory leaks");
+
+    *ppView = nullptr;
+
+    try
+    {
+        auto* pDeviceMtl = GetDevice();
+        auto& TexViewAllocator = pDeviceMtl->GetTexViewObjAllocator();
+        VERIFY(&TexViewAllocator == &m_dbgTexViewAllocator, "Texture view allocator does not match allocator provided during texture initialization");
+
+        TextureViewMtlImpl* pViewMtl = NEW_RC_OBJ(TexViewAllocator, "TextureViewMtlImpl instance", TextureViewMtlImpl)
+                                       (GetDevice(), ViewDesc, this, bIsDefaultView);
+        pViewMtl->QueryInterface(IID_TextureView, reinterpret_cast<IObject**>(ppView));
+    }
+    catch (const std::runtime_error&)
+    {
+        const auto* ViewTypeName = GetTexViewTypeLiteralName(ViewDesc.ViewType);
+        LOG_ERROR("Failed to create view \"", ViewDesc.Name ? ViewDesc.Name : "", "\" (", ViewTypeName, ") for texture \"", m_Desc.Name, "\"");
+    }
 }
 
 } // namespace Diligent

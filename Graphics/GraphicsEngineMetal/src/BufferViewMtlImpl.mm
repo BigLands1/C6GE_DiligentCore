@@ -24,26 +24,50 @@
  *  of the possibility of such damages.
  */
 
-#include "RenderPassMtlImpl.hpp"
+#include "BufferViewMtlImpl.hpp"
 #include "RenderDeviceMtlImpl.hpp"
+#include "BufferMtlImpl.hpp"
+#include "Cast.hpp"
+#import <Metal/Metal.h>
 
 namespace Diligent
 {
 
-RenderPassMtlImpl::RenderPassMtlImpl(IReferenceCounters*   pRefCounters,
-                                     RenderDeviceMtlImpl*  pRenderDeviceMtl,
-                                     const RenderPassDesc& Desc,
-                                     bool                  IsDeviceInternal) :
-    TBase{pRefCounters, pRenderDeviceMtl, Desc, IsDeviceInternal}
+BufferViewMtlImpl::BufferViewMtlImpl(IReferenceCounters*   pRefCounters,
+                                     RenderDeviceMtlImpl*  pDevice,
+                                     const BufferViewDesc& ViewDesc,
+                                     IBuffer*              pBuffer,
+                                     bool                  bIsDefaultView) :
+    TBufferViewBase{pRefCounters, pDevice, ViewDesc, pBuffer, bIsDefaultView}
 {
-    // Metal doesn't use explicit render pass objects like Vulkan
-    // Render pass information is encoded directly in MTLRenderPassDescriptor
-    // when beginning a render command encoder
+    // For formatted buffer views, create MTLTexture view
+    if (ViewDesc.Format.ValueType != VT_UNDEFINED)
+    {
+        @autoreleasepool
+        {
+            auto* pBufferMtl = ClassPtrCast<BufferMtlImpl>(pBuffer);
+            id<MTLBuffer> mtlBuffer = pBufferMtl->GetMtlResource();
+            
+            // Create texture view for formatted buffer
+            // Note: Metal texture buffers are created differently than Vulkan
+            // For now, we store nil and will implement when needed
+            m_MtlTextureView = nil;
+        }
+    }
 }
 
-RenderPassMtlImpl::~RenderPassMtlImpl()
+BufferViewMtlImpl::~BufferViewMtlImpl()
 {
-    // Metal render passes don't require explicit cleanup
+    if (m_MtlTextureView != nil)
+    {
+        [m_MtlTextureView release];
+        m_MtlTextureView = nil;
+    }
+}
+
+id<MTLTexture> BufferViewMtlImpl::GetMtlTextureView() const
+{
+    return m_MtlTextureView;
 }
 
 } // namespace Diligent

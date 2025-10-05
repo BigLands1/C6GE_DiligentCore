@@ -25,6 +25,7 @@
  */
 
 #include "BufferMtlImpl.hpp"
+#include "BufferViewMtlImpl.hpp"
 #include "RenderDeviceMtlImpl.hpp"
 #include "Cast.hpp"
 #import <Metal/Metal.h>
@@ -103,6 +104,31 @@ id<MTLBuffer> BufferMtlImpl::GetMtlResource() const
 Uint64 BufferMtlImpl::GetNativeHandle()
 {
     return BitCast<Uint64>(m_MtlBuffer);
+}
+
+void BufferMtlImpl::CreateViewInternal(const BufferViewDesc& ViewDesc, IBufferView** ppView, bool bIsDefaultView)
+{
+    VERIFY(ppView != nullptr, "Null pointer provided");
+    if (!ppView) return;
+    VERIFY(*ppView == nullptr, "Overwriting reference to existing object may cause memory leaks");
+
+    *ppView = nullptr;
+
+    try
+    {
+        auto* pDeviceMtl = GetDevice();
+        auto& BuffViewAllocator = pDeviceMtl->GetBuffViewObjAllocator();
+        VERIFY(&BuffViewAllocator == &m_dbgBuffViewAllocator, "Buff view allocator does not match allocator provided during buffer initialization");
+
+        BufferViewMtlImpl* pViewMtl = NEW_RC_OBJ(BuffViewAllocator, "BufferViewMtlImpl instance", BufferViewMtlImpl)
+                                      (GetDevice(), ViewDesc, this, bIsDefaultView);
+        pViewMtl->QueryInterface(IID_BufferView, reinterpret_cast<IObject**>(ppView));
+    }
+    catch (const std::runtime_error&)
+    {
+        const auto* ViewTypeName = GetBufferViewTypeLiteralName(ViewDesc.ViewType);
+        LOG_ERROR("Failed to create view \"", ViewDesc.Name ? ViewDesc.Name : "", "\" (", ViewTypeName, ") for buffer \"", m_Desc.Name, "\"");
+    }
 }
 
 } // namespace Diligent

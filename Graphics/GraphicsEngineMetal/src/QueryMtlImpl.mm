@@ -24,26 +24,53 @@
  *  of the possibility of such damages.
  */
 
-#include "RenderPassMtlImpl.hpp"
+#include "QueryMtlImpl.hpp"
 #include "RenderDeviceMtlImpl.hpp"
 
 namespace Diligent
 {
 
-RenderPassMtlImpl::RenderPassMtlImpl(IReferenceCounters*   pRefCounters,
-                                     RenderDeviceMtlImpl*  pRenderDeviceMtl,
-                                     const RenderPassDesc& Desc,
-                                     bool                  IsDeviceInternal) :
-    TBase{pRefCounters, pRenderDeviceMtl, Desc, IsDeviceInternal}
+QueryMtlImpl::QueryMtlImpl(IReferenceCounters*  pRefCounters,
+                           RenderDeviceMtlImpl* pRenderDeviceMtl,
+                           const QueryDesc&     Desc,
+                           bool                 IsDeviceInternal) :
+    TQueryBase{pRefCounters, pRenderDeviceMtl, Desc, IsDeviceInternal}
 {
-    // Metal doesn't use explicit render pass objects like Vulkan
-    // Render pass information is encoded directly in MTLRenderPassDescriptor
-    // when beginning a render command encoder
+    // Metal query implementation would use MTLCounterSampleBuffer
+    // For now, this is a stub implementation
 }
 
-RenderPassMtlImpl::~RenderPassMtlImpl()
+QueryMtlImpl::~QueryMtlImpl()
 {
-    // Metal render passes don't require explicit cleanup
+}
+
+bool QueryMtlImpl::GetData(void* pData, Uint32 DataSize, bool AutoInvalidate)
+{
+    if (!m_DataAvailable)
+        return false;
+
+    if (pData == nullptr)
+        return true;
+
+    if (DataSize < sizeof(QueryDataOcclusion))
+        return false;
+
+    // Return stub data
+    auto* pQueryData = reinterpret_cast<QueryDataOcclusion*>(pData);
+    pQueryData->NumSamples = m_QueryData;
+
+    if (AutoInvalidate)
+    {
+        Invalidate();
+    }
+
+    return true;
+}
+
+void QueryMtlImpl::Invalidate()
+{
+    m_DataAvailable = false;
+    m_QueryData = 0;
 }
 
 } // namespace Diligent

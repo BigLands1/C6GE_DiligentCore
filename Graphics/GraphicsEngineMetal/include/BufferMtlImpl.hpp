@@ -64,6 +64,9 @@ public:
     /// Implementation of IBuffer::GetNativeHandle() in Metal backend.
     virtual Uint64 DILIGENT_CALL_TYPE GetNativeHandle() override final;
 
+protected:
+    virtual void CreateViewInternal(const struct BufferViewDesc& ViewDesc, IBufferView** ppView, bool bIsDefaultView) override final;
+
 private:
     id<MTLBuffer> m_MtlBuffer = nil;
 };

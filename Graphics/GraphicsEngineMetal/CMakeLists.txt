@@ -3,17 +3,22 @@ cmake_minimum_required (VERSION 3.11)
 project(Diligent-GraphicsEngineMetal CXX)
 
 set(INCLUDE
+    include/BottomLevelASMtlImpl.hpp
     include/BufferMtlImpl.hpp
+    include/BufferViewMtlImpl.hpp
     include/DeviceObjectArchiveMtlImpl.hpp
     include/EngineMtlImplTraits.hpp
     include/FenceMtlImpl.hpp
     include/PipelineResourceSignatureMtlImpl.hpp
     include/PipelineStateMtlImpl.hpp
+    include/QueryMtlImpl.hpp
     include/RenderDeviceMtlImpl.hpp
     include/RenderPassMtlImpl.hpp
     include/SamplerMtlImpl.hpp
     include/ShaderMtlImpl.hpp
     include/TextureMtlImpl.hpp
+    include/TextureViewMtlImpl.hpp
+    include/TopLevelASMtlImpl.hpp
 )
 
 set(INTERFACE
@@ -40,15 +45,20 @@ set(INTERFACE
 )
 
 set(SRC
+    src/BottomLevelASMtlImpl.mm
     src/BufferMtlImpl.mm
+    src/BufferViewMtlImpl.mm
     src/FenceMtlImpl.mm
     src/PipelineResourceSignatureMtlImpl.mm
     src/PipelineStateMtlImpl.mm
+    src/QueryMtlImpl.mm
     src/RenderDeviceMtlImpl.mm
     src/RenderPassMtlImpl.mm
     src/SamplerMtlImpl.mm
     src/ShaderMtlImpl.mm
     src/TextureMtlImpl.mm
+    src/TextureViewMtlImpl.mm
+    src/TopLevelASMtlImpl.mm
 )
 
 # Metal backend is only available on Apple platforms
