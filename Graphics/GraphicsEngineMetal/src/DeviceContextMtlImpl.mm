@@ -28,6 +28,7 @@
 #include "RenderDeviceMtlImpl.hpp"
 #include "PipelineStateMtlImpl.hpp"
 #include "BufferMtlImpl.hpp"
+#include "TextureMtlImpl.hpp"
 #include "TextureViewMtlImpl.hpp"
 #import <Metal/Metal.h>
 
@@ -153,22 +154,34 @@ void DeviceContextMtlImpl::SetPipelineState(IPipelineState* pPipelineState)
 
 void DeviceContextMtlImpl::TransitionShaderResources(IShaderResourceBinding* pShaderResourceBinding)
 {
-    // Stub: Transition shader resources
+    // Metal doesn't require explicit resource transitions
+    // Resources are automatically transitioned based on usage
 }
 
 void DeviceContextMtlImpl::CommitShaderResources(IShaderResourceBinding* pShaderResourceBinding, RESOURCE_STATE_TRANSITION_MODE StateTransitionMode)
 {
-    // Stub: Commit shader resources
+    // Metal resource binding would be implemented here
+    // This would involve setting textures, buffers, and samplers
+    // For now, this is a stub
 }
 
 void DeviceContextMtlImpl::SetStencilRef(Uint32 StencilRef)
 {
-    // Stub: Set stencil reference
+    if (m_MtlRenderEncoder != nil)
+    {
+        [m_MtlRenderEncoder setStencilReferenceValue:StencilRef];
+    }
 }
 
 void DeviceContextMtlImpl::SetBlendFactors(const float* pBlendFactors)
 {
-    // Stub: Set blend factors
+    if (m_MtlRenderEncoder != nil && pBlendFactors != nullptr)
+    {
+        [m_MtlRenderEncoder setBlendColorRed:pBlendFactors[0]
+                                       green:pBlendFactors[1]
+                                        blue:pBlendFactors[2]
+                                       alpha:pBlendFactors[3]];
+    }
 }
 
 void DeviceContextMtlImpl::SetVertexBuffers(Uint32 StartSlot, Uint32 NumBuffersSet, IBuffer* const* ppBuffers, const Uint64* pOffsets, RESOURCE_STATE_TRANSITION_MODE StateTransitionMode, SET_VERTEX_BUFFERS_FLAGS Flags)
@@ -453,34 +466,109 @@ void DeviceContextMtlImpl::CopyBuffer(IBuffer* pSrcBuffer, Uint64 SrcOffset, RES
 
 void DeviceContextMtlImpl::MapBuffer(IBuffer* pBuffer, MAP_TYPE MapType, MAP_FLAGS MapFlags, PVoid& pMappedData)
 {
-    // Stub: Map buffer
     pMappedData = nullptr;
+    
+    if (pBuffer == nullptr)
+        return;
+    
+    auto* pBufferMtl = static_cast<BufferMtlImpl*>(pBuffer);
+    id<MTLBuffer> mtlBuffer = pBufferMtl->GetMtlResource();
+    
+    if (mtlBuffer != nil)
+    {
+        pMappedData = [mtlBuffer contents];
+    }
 }
 
 void DeviceContextMtlImpl::UnmapBuffer(IBuffer* pBuffer, MAP_TYPE MapType)
 {
-    // Stub: Unmap buffer
+    // Metal buffers don't need explicit unmap
+    // Data is coherent for shared storage mode
 }
 
 void DeviceContextMtlImpl::UpdateTexture(ITexture* pTexture, Uint32 MipLevel, Uint32 Slice, const Box& DstBox, const TextureSubResData& SubresData, RESOURCE_STATE_TRANSITION_MODE SrcBufferTransitionMode, RESOURCE_STATE_TRANSITION_MODE DstTextureTransitionMode)
 {
-    // Stub: Update texture
+    if (pTexture == nullptr || SubresData.pData == nullptr)
+        return;
+    
+    auto* pTextureMtl = static_cast<TextureMtlImpl*>(pTexture);
+    id<MTLTexture> mtlTexture = static_cast<id<MTLTexture>>(pTextureMtl->GetMtlResource());
+    
+    if (mtlTexture != nil)
+    {
+        MTLRegion region;
+        region.origin = MTLOriginMake(DstBox.MinX, DstBox.MinY, DstBox.MinZ);
+        region.size = MTLSizeMake(DstBox.MaxX - DstBox.MinX, DstBox.MaxY - DstBox.MinY, DstBox.MaxZ - DstBox.MinZ);
+        
+        [mtlTexture replaceRegion:region
+                      mipmapLevel:MipLevel
+                            slice:Slice
+                        withBytes:SubresData.pData
+                      bytesPerRow:SubresData.Stride
+                    bytesPerImage:SubresData.DepthStride];
+    }
 }
 
 void DeviceContextMtlImpl::CopyTexture(const CopyTextureAttribs& CopyAttribs)
 {
-    // Stub: Copy texture
+    if (CopyAttribs.pSrcTexture == nullptr || CopyAttribs.pDstTexture == nullptr)
+        return;
+    
+    EndAllEncoders();
+    EnsureCommandBuffer();
+    
+    auto* pSrcTextureMtl = static_cast<TextureMtlImpl*>(CopyAttribs.pSrcTexture);
+    auto* pDstTextureMtl = static_cast<TextureMtlImpl*>(CopyAttribs.pDstTexture);
+    
+    id<MTLTexture> srcMtlTexture = static_cast<id<MTLTexture>>(pSrcTextureMtl->GetMtlResource());
+    id<MTLTexture> dstMtlTexture = static_cast<id<MTLTexture>>(pDstTextureMtl->GetMtlResource());
+    
+    if (srcMtlTexture != nil && dstMtlTexture != nil)
+    {
+        m_MtlBlitEncoder = [m_MtlCommandBuffer blitCommandEncoder];
+        [m_MtlBlitEncoder retain];
+        
+        MTLOrigin srcOrigin = MTLOriginMake(0, 0, 0);
+        MTLSize srcSize = MTLSizeMake([srcMtlTexture width], [srcMtlTexture height], [srcMtlTexture depth]);
+        MTLOrigin dstOrigin = MTLOriginMake(0, 0, 0);
+        
+        [m_MtlBlitEncoder copyFromTexture:srcMtlTexture
+                              sourceSlice:0
+                              sourceLevel:0
+                             sourceOrigin:srcOrigin
+                               sourceSize:srcSize
+                                toTexture:dstMtlTexture
+                         destinationSlice:0
+                         destinationLevel:0
+                        destinationOrigin:dstOrigin];
+        
+        [m_MtlBlitEncoder endEncoding];
+        [m_MtlBlitEncoder release];
+        m_MtlBlitEncoder = nil;
+    }
 }
 
 void DeviceContextMtlImpl::MapTextureSubresource(ITexture* pTexture, Uint32 MipLevel, Uint32 ArraySlice, MAP_TYPE MapType, MAP_FLAGS MapFlags, const Box* pMapRegion, MappedTextureSubresource& MappedData)
 {
-    // Stub: Map texture subresource
     MappedData = {};
+    
+    if (pTexture == nullptr)
+        return;
+    
+    auto* pTextureMtl = static_cast<TextureMtlImpl*>(pTexture);
+    id<MTLTexture> mtlTexture = static_cast<id<MTLTexture>>(pTextureMtl->GetMtlResource());
+    
+    if (mtlTexture != nil)
+    {
+        // Metal textures cannot be directly mapped
+        // Would need to use a staging buffer for texture mapping
+        // For now, this is a stub
+    }
 }
 
 void DeviceContextMtlImpl::UnmapTextureSubresource(ITexture* pTexture, Uint32 MipLevel, Uint32 ArraySlice)
 {
-    // Stub: Unmap texture subresource
+    // Metal textures don't support direct mapping
 }
 
 void DeviceContextMtlImpl::FinishCommandList(ICommandList** ppCommandList)
@@ -507,7 +595,15 @@ void DeviceContextMtlImpl::DeviceWaitForFence(IFence* pFence, Uint64 Value)
 
 void DeviceContextMtlImpl::WaitForIdle()
 {
-    // Stub: Wait for idle
+    EndAllEncoders();
+    
+    if (m_MtlCommandBuffer != nil)
+    {
+        [m_MtlCommandBuffer commit];
+        [m_MtlCommandBuffer waitUntilCompleted];
+        [m_MtlCommandBuffer release];
+        m_MtlCommandBuffer = nil;
+    }
 }
 
 void DeviceContextMtlImpl::BeginQuery(IQuery* pQuery)
