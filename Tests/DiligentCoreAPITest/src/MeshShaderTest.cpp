@@ -50,6 +50,12 @@ void MeshShaderIndirectDrawReferenceVk(ISwapChain* pSwapChain);
 void AmplificationShaderDrawReferenceVk(ISwapChain* pSwapChain);
 #endif
 
+#if METAL_SUPPORTED
+void MeshShaderDrawReferenceMtl(ISwapChain* pSwapChain);
+void MeshShaderIndirectDrawReferenceMtl(ISwapChain* pSwapChain);
+void AmplificationShaderDrawReferenceMtl(ISwapChain* pSwapChain);
+#endif
+
 } // namespace Testing
 
 } // namespace Diligent
@@ -92,6 +98,12 @@ TEST(MeshShaderTest, DrawTriangle)
 #if VULKAN_SUPPORTED
             case RENDER_DEVICE_TYPE_VULKAN:
                 MeshShaderDrawReferenceVk(pSwapChain);
+                break;
+#endif
+
+#if METAL_SUPPORTED
+            case RENDER_DEVICE_TYPE_METAL:
+                MeshShaderDrawReferenceMtl(pSwapChain);
                 break;
 #endif
 
@@ -202,10 +214,15 @@ TEST(MeshShaderTest, DrawTriangleIndirect)
                 break;
 #endif
 
+#if METAL_SUPPORTED
+            case RENDER_DEVICE_TYPE_METAL:
+                MeshShaderIndirectDrawReferenceMtl(pSwapChain);
+                break;
+#endif
+
             case RENDER_DEVICE_TYPE_D3D11:
             case RENDER_DEVICE_TYPE_GL:
             case RENDER_DEVICE_TYPE_GLES:
-            case RENDER_DEVICE_TYPE_METAL:
             default:
                 LOG_ERROR_AND_THROW("Unsupported device type");
         }
@@ -334,10 +351,15 @@ TEST(MeshShaderTest, DrawTriangleIndirectCount)
                 break;
 #endif
 
+#if METAL_SUPPORTED
+            case RENDER_DEVICE_TYPE_METAL:
+                MeshShaderIndirectDrawReferenceMtl(pSwapChain);
+                break;
+#endif
+
             case RENDER_DEVICE_TYPE_D3D11:
             case RENDER_DEVICE_TYPE_GL:
             case RENDER_DEVICE_TYPE_GLES:
-            case RENDER_DEVICE_TYPE_METAL:
             default:
                 LOG_ERROR_AND_THROW("Unsupported device type");
         }
@@ -467,6 +489,12 @@ TEST(MeshShaderTest, DrawTrisWithAmplificationShader)
 #if VULKAN_SUPPORTED
             case RENDER_DEVICE_TYPE_VULKAN:
                 AmplificationShaderDrawReferenceVk(pSwapChain);
+                break;
+#endif
+
+#if METAL_SUPPORTED
+            case RENDER_DEVICE_TYPE_METAL:
+                AmplificationShaderDrawReferenceMtl(pSwapChain);
                 break;
 #endif
 

@@ -50,6 +50,12 @@ void VariableShadingRatePerPrimitiveTestReferenceVk(ISwapChain* pSwapChain);
 void VariableShadingRateTextureBasedTestReferenceVk(ISwapChain* pSwapChain);
 #endif
 
+#if METAL_SUPPORTED
+void VariableShadingRatePerDrawTestReferenceMtl(ISwapChain* pSwapChain);
+void VariableShadingRatePerPrimitiveTestReferenceMtl(ISwapChain* pSwapChain);
+void VariableShadingRateTextureBasedTestReferenceMtl(ISwapChain* pSwapChain);
+#endif
+
 RefCntAutoPtr<ITextureView> CreateShadingRateTexture(IRenderDevice* pDevice, ISwapChain* pSwapChain, Uint32 SampleCount = 1, Uint32 ArraySize = 1)
 {
     const auto& SCDesc  = pSwapChain->GetDesc();
@@ -194,6 +200,12 @@ TEST(VariableShadingRateTest, PerDraw)
                 break;
 #endif
 
+#if METAL_SUPPORTED
+            case RENDER_DEVICE_TYPE_METAL:
+                VariableShadingRatePerDrawTestReferenceMtl(pSwapChain);
+                break;
+#endif
+
             case RENDER_DEVICE_TYPE_UNDEFINED: // to avoid empty switch
             default:
                 LOG_ERROR_AND_THROW("Unsupported device type");
@@ -309,6 +321,12 @@ TEST(VariableShadingRateTest, PerPrimitive)
 #if VULKAN_SUPPORTED
             case RENDER_DEVICE_TYPE_VULKAN:
                 VariableShadingRatePerPrimitiveTestReferenceVk(pSwapChain);
+                break;
+#endif
+
+#if METAL_SUPPORTED
+            case RENDER_DEVICE_TYPE_METAL:
+                VariableShadingRatePerPrimitiveTestReferenceMtl(pSwapChain);
                 break;
 #endif
 
@@ -458,6 +476,12 @@ TEST(VariableShadingRateTest, TextureBased)
                 break;
 #endif
 
+#if METAL_SUPPORTED
+            case RENDER_DEVICE_TYPE_METAL:
+                VariableShadingRateTextureBasedTestReferenceMtl(pSwapChain);
+                break;
+#endif
+
             case RENDER_DEVICE_TYPE_UNDEFINED: // to avoid empty switch
             default:
                 LOG_ERROR_AND_THROW("Unsupported device type");
@@ -588,6 +612,12 @@ TEST(VariableShadingRateTest, TextureBasedWithTextureArray)
 #if VULKAN_SUPPORTED
             case RENDER_DEVICE_TYPE_VULKAN:
                 VariableShadingRateTextureBasedTestReferenceVk(pSwapChain);
+                break;
+#endif
+
+#if METAL_SUPPORTED
+            case RENDER_DEVICE_TYPE_METAL:
+                VariableShadingRateTextureBasedTestReferenceMtl(pSwapChain);
                 break;
 #endif
 
@@ -768,6 +798,12 @@ TEST(VariableShadingRateTest, TextureBasedWithRenderPass)
 #if VULKAN_SUPPORTED
             case RENDER_DEVICE_TYPE_VULKAN:
                 VariableShadingRateTextureBasedTestReferenceVk(pSwapChain);
+                break;
+#endif
+
+#if METAL_SUPPORTED
+            case RENDER_DEVICE_TYPE_METAL:
+                VariableShadingRateTextureBasedTestReferenceMtl(pSwapChain);
                 break;
 #endif
 

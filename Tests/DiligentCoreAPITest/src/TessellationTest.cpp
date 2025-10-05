@@ -55,7 +55,7 @@ void TessellationReferenceVk(ISwapChain* pSwapChain);
 #endif
 
 #if METAL_SUPPORTED
-
+void TessellationReferenceMtl(ISwapChain* pSwapChain);
 #endif
 
 } // namespace Testing
@@ -120,6 +120,13 @@ TEST(TessellationTest, DrawQuad)
 #if VULKAN_SUPPORTED
             case RENDER_DEVICE_TYPE_VULKAN:
                 TessellationReferenceVk(pSwapChain);
+                break;
+
+#endif
+
+#if METAL_SUPPORTED
+            case RENDER_DEVICE_TYPE_METAL:
+                TessellationReferenceMtl(pSwapChain);
                 break;
 
 #endif
