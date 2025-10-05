@@ -55,7 +55,7 @@ void GeometryShaderReferenceVk(ISwapChain* pSwapChain);
 #endif
 
 #if METAL_SUPPORTED
-
+void GeometryShaderReferenceMtl(ISwapChain* pSwapChain);
 #endif
 
 } // namespace Testing
@@ -120,6 +120,13 @@ TEST(GeometryShaderTest, DrawTriangles)
 #if VULKAN_SUPPORTED
             case RENDER_DEVICE_TYPE_VULKAN:
                 GeometryShaderReferenceVk(pSwapChain);
+                break;
+
+#endif
+
+#if METAL_SUPPORTED
+            case RENDER_DEVICE_TYPE_METAL:
+                GeometryShaderReferenceMtl(pSwapChain);
                 break;
 
 #endif
