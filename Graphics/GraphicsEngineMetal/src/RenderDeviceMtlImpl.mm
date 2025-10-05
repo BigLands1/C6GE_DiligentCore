@@ -26,6 +26,11 @@
 
 #include "RenderDeviceMtlImpl.hpp"
 #include "ShaderMtlImpl.hpp"
+#include "PipelineStateMtlImpl.hpp"
+#include "BufferMtlImpl.hpp"
+#include "TextureMtlImpl.hpp"
+#include "SamplerMtlImpl.hpp"
+#include "FenceMtlImpl.hpp"
 #include "DebugUtilities.hpp"
 
 #import <Metal/Metal.h>
@@ -56,53 +61,46 @@ RenderDeviceMtlImpl::~RenderDeviceMtlImpl()
 void RenderDeviceMtlImpl::CreateGraphicsPipelineState(const GraphicsPipelineStateCreateInfo& PSOCreateInfo,
                                                       IPipelineState**                       ppPipelineState)
 {
-    // TODO: Implement graphics pipeline state creation
-    LOG_ERROR_MESSAGE("CreateGraphicsPipelineState is not yet implemented for Metal backend");
+    CreatePipelineStateImpl(ppPipelineState, PSOCreateInfo);
 }
 
 void RenderDeviceMtlImpl::CreateComputePipelineState(const ComputePipelineStateCreateInfo& PSOCreateInfo,
                                                      IPipelineState**                      ppPipelineState)
 {
-    // TODO: Implement compute pipeline state creation
-    LOG_ERROR_MESSAGE("CreateComputePipelineState is not yet implemented for Metal backend");
+    CreatePipelineStateImpl(ppPipelineState, PSOCreateInfo);
 }
 
 void RenderDeviceMtlImpl::CreateBuffer(const BufferDesc& BuffDesc,
                                        const BufferData* pBuffData,
                                        IBuffer**         ppBuffer)
 {
-    // TODO: Implement buffer creation
-    LOG_ERROR_MESSAGE("CreateBuffer is not yet implemented for Metal backend");
+    CreateBufferImpl(ppBuffer, BuffDesc, pBuffData);
 }
 
 void RenderDeviceMtlImpl::CreateShader(const ShaderCreateInfo& ShaderCreateInfo,
                                        IShader**               ppShader,
                                        IDataBlob**             ppCompilerOutput)
 {
-    // TODO: Implement shader creation
-    LOG_ERROR_MESSAGE("CreateShader is not yet implemented for Metal backend");
+    CreateShaderImpl(ppShader, ShaderCreateInfo, ppCompilerOutput);
 }
 
 void RenderDeviceMtlImpl::CreateTexture(const TextureDesc& TexDesc,
                                         const TextureData* pData,
                                         ITexture**         ppTexture)
 {
-    // TODO: Implement texture creation
-    LOG_ERROR_MESSAGE("CreateTexture is not yet implemented for Metal backend");
+    CreateTextureImpl(ppTexture, TexDesc, pData);
 }
 
 void RenderDeviceMtlImpl::CreateSampler(const SamplerDesc& SamplerDesc,
                                         ISampler**         ppSampler)
 {
-    // TODO: Implement sampler creation
-    LOG_ERROR_MESSAGE("CreateSampler is not yet implemented for Metal backend");
+    CreateSamplerImpl(ppSampler, SamplerDesc);
 }
 
 void RenderDeviceMtlImpl::CreateFence(const FenceDesc& Desc,
                                       IFence**         ppFence)
 {
-    // TODO: Implement fence creation
-    LOG_ERROR_MESSAGE("CreateFence is not yet implemented for Metal backend");
+    CreateFenceImpl(ppFence, Desc);
 }
 
 void RenderDeviceMtlImpl::CreateQuery(const QueryDesc& Desc,
@@ -122,8 +120,13 @@ void RenderDeviceMtlImpl::CreateTextureFromMtlResource(id<MTLTexture>     mtlTex
                                                        RESOURCE_STATE     InitialState,
                                                        ITexture**         ppTexture)
 {
-    // TODO: Implement texture creation from Metal resource
-    LOG_ERROR_MESSAGE("CreateTextureFromMtlResource is not yet implemented for Metal backend");
+    CreateDeviceObject("texture from Metal resource", TexDesc, ppTexture,
+        [&]()
+        {
+            TextureMtlImpl* pTextureMtl = NEW_RC_OBJ(m_TexViewObjAllocator, "TextureMtlImpl instance", TextureMtlImpl)
+                                         (GetRawAllocator(), GetTextureViewObjAllocator(), this, TexDesc, InitialState, mtlTexture);
+            pTextureMtl->QueryInterface(IID_Texture, reinterpret_cast<IObject**>(ppTexture));
+        });
 }
 
 void RenderDeviceMtlImpl::CreateBufferFromMtlResource(id<MTLBuffer>     mtlBuffer,
@@ -131,8 +134,13 @@ void RenderDeviceMtlImpl::CreateBufferFromMtlResource(id<MTLBuffer>     mtlBuffe
                                                       RESOURCE_STATE    InitialState,
                                                       IBuffer**         ppBuffer)
 {
-    // TODO: Implement buffer creation from Metal resource
-    LOG_ERROR_MESSAGE("CreateBufferFromMtlResource is not yet implemented for Metal backend");
+    CreateDeviceObject("buffer from Metal resource", BuffDesc, ppBuffer,
+        [&]()
+        {
+            BufferMtlImpl* pBufferMtl = NEW_RC_OBJ(m_BufViewObjAllocator, "BufferMtlImpl instance", BufferMtlImpl)
+                                        (GetRawAllocator(), GetBufferViewObjAllocator(), this, BuffDesc, InitialState, mtlBuffer);
+            pBufferMtl->QueryInterface(IID_Buffer, reinterpret_cast<IObject**>(ppBuffer));
+        });
 }
 
 void RenderDeviceMtlImpl::CreateSparseTexture(const TextureDesc& TexDesc,
