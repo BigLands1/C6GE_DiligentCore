@@ -1,9 +1,11 @@
-# Diligent Core [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?text=An%20easy-to-use%20cross-platform%20graphics%20library%20that%20takes%20full%20advantage%20of%20%23Direct3D12%20and%20%23VulkanAPI&url=https://github.com/DiligentGraphics/DiligentEngine) <img src="media/diligentgraphics-logo.png" height=64 align="right" valign="middle">
+# C6GE Diligent Core [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?text=An%20easy-to-use%20cross-platform%20graphics%20library%20that%20takes%20full%20advantage%20of%20%23Direct3D12%20and%20%23VulkanAPI&url=https://github.com/DiligentGraphics/DiligentEngine) <img src="media/diligentgraphics-logo.png" height=64 align="right" valign="middle">
 
-Diligent Core is a modern, cross-platform low-level graphics API that forms the foundation of [Diligent Engine](https://github.com/DiligentGraphics/DiligentEngine).
-It provides implementations for Direct3D11, Direct3D12, OpenGL, OpenGLES, Vulkan, and WebGPU rendering backends.
-A Metal backend is also available for commercial clients. In addition, the module includes essential platform-specific utilities.
-Diligent Core is fully self-contained and can be built independently of the rest of the engine.
+This is a fork of Diligent Engine called **C6GE Diligent Engine**. It is used for the C6GE engine but can be used for any purpose.
+
+C6GE Diligent Core is a modern, cross-platform low-level graphics API that forms the foundation of [Diligent Engine](https://github.com/DiligentGraphics/DiligentEngine).
+It provides implementations for Direct3D11, Direct3D12, OpenGL, OpenGLES, Vulkan, Metal, and WebGPU rendering backends.
+The Metal backend is freely available. In addition, the module includes essential platform-specific utilities.
+C6GE Diligent Core is fully self-contained and can be built independently of the rest of the engine.
 For details on supported platforms, features, and build instructions, please refer to the 
 [main repository](https://github.com/DiligentGraphics/DiligentEngine).
 

@@ -1,6 +1,6 @@
 
 # Graphics Engine Metal
 
-Implementation of Metal backend is available for commercial clients.
+The Metal backend implementation is freely available in this fork (C6GE Diligent Engine).
 
-Please contact us for licensing details.
+This can be used for any purpose with the free Metal render support.
