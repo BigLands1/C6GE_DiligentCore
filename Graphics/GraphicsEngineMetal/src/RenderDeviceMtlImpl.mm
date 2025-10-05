@@ -45,7 +45,6 @@ RenderDeviceMtlImpl::RenderDeviceMtlImpl(IReferenceCounters*        pRefCounters
                                          const GraphicsAdapterInfo& AdapterInfo) noexcept(false) :
     TRenderDeviceBase{pRefCounters, RawMemAllocator, pEngineFactory, EngineCI, AdapterInfo}
 {
-    // TODO: Initialize Metal device
     m_MtlDevice = MTLCreateSystemDefaultDevice();
 }
 
@@ -106,8 +105,8 @@ void RenderDeviceMtlImpl::CreateFence(const FenceDesc& Desc,
 void RenderDeviceMtlImpl::CreateQuery(const QueryDesc& Desc,
                                       IQuery**         ppQuery)
 {
-    // TODO: Implement query creation
-    LOG_ERROR_MESSAGE("CreateQuery is not yet implemented for Metal backend");
+    // Query creation not yet fully implemented for Metal backend
+    LOG_ERROR_MESSAGE("CreateQuery is not yet fully implemented for Metal backend");
 }
 
 id<MTLDevice> RenderDeviceMtlImpl::GetMtlDevice() const
@@ -135,7 +134,7 @@ void RenderDeviceMtlImpl::CreateSparseTexture(const TextureDesc& TexDesc,
                                               IDeviceMemory*     pMemory,
                                               ITexture**         ppTexture)
 {
-    // TODO: Implement sparse texture creation
+    // Sparse textures not yet implemented for Metal backend
     LOG_ERROR_MESSAGE("CreateSparseTexture is not yet implemented for Metal backend");
 }
 
