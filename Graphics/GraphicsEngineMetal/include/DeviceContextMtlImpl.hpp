@@ -265,8 +265,24 @@ public:
     virtual void DILIGENT_CALL_TYPE SetTileThreadgroupMemoryLength(Uint32 Length, Uint32 Index) override final;
 
 private:
-    id<MTLCommandBuffer> m_MtlCommandBuffer = nil;
-    IObject*             m_pUserData        = nullptr;
+    void EnsureCommandBuffer();
+    void EndAllEncoders();
+    
+    id<MTLCommandQueue>          m_MtlCommandQueue    = nil;
+    id<MTLCommandBuffer>         m_MtlCommandBuffer   = nil;
+    id<MTLRenderCommandEncoder>  m_MtlRenderEncoder   = nil;
+    id<MTLComputeCommandEncoder> m_MtlComputeEncoder  = nil;
+    id<MTLBlitCommandEncoder>    m_MtlBlitEncoder     = nil;
+    
+    IPipelineState*              m_pPipelineState     = nullptr;
+    IBuffer*                     m_pIndexBuffer       = nullptr;
+    Uint64                       m_IndexBufferOffset  = 0;
+    
+    IRenderPass*                 m_pActiveRenderPass  = nullptr;
+    const OptimizedClearValue*   m_pClearValues       = nullptr;
+    Uint32                       m_ClearValueCount    = 0;
+    
+    IObject*                     m_pUserData          = nullptr;
 };
 
 } // namespace Diligent
