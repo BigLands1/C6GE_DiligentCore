@@ -6,6 +6,7 @@ set(INCLUDE
     include/BottomLevelASMtlImpl.hpp
     include/BufferMtlImpl.hpp
     include/BufferViewMtlImpl.hpp
+    include/DeviceContextMtlImpl.hpp
     include/DeviceObjectArchiveMtlImpl.hpp
     include/EngineMtlImplTraits.hpp
     include/FenceMtlImpl.hpp
@@ -48,6 +49,7 @@ set(SRC
     src/BottomLevelASMtlImpl.mm
     src/BufferMtlImpl.mm
     src/BufferViewMtlImpl.mm
+    src/DeviceContextMtlImpl.mm
     src/FenceMtlImpl.mm
     src/PipelineResourceSignatureMtlImpl.mm
     src/PipelineStateMtlImpl.mm
