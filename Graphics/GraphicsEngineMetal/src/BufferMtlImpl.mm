@@ -106,6 +106,12 @@ Uint64 BufferMtlImpl::GetNativeHandle()
     return BitCast<Uint64>(m_MtlBuffer);
 }
 
+SparseBufferProperties BufferMtlImpl::GetSparseProperties() const
+{
+    DEV_ERROR("IBuffer::GetSparseProperties() is not yet supported in Metal backend");
+    return {};
+}
+
 void BufferMtlImpl::CreateViewInternal(const BufferViewDesc& ViewDesc, IBufferView** ppView, bool bIsDefaultView)
 {
     VERIFY(ppView != nullptr, "Null pointer provided");
