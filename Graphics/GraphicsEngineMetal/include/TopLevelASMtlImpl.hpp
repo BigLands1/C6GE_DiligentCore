@@ -32,6 +32,8 @@
 #include "EngineMtlImplTraits.hpp"
 #include "TopLevelASBase.hpp"
 
+#import <Metal/Metal.h>
+
 namespace Diligent
 {
 
