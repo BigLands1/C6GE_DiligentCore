@@ -29,6 +29,9 @@
 
 #include "../../GraphicsEngine/interface/TextureView.h"
 
+// Forward declarations of Metal protocols
+@protocol MTLTexture;
+
 DILIGENT_BEGIN_NAMESPACE(Diligent)
 
 // {94C0D9C3-61E7-4358-AB9F-066EAD84D6F1}

@@ -29,6 +29,9 @@
 
 #include "../../GraphicsEngine/interface/TopLevelAS.h"
 
+// Forward declarations of Metal protocols
+@protocol MTLAccelerationStructure;
+
 DILIGENT_BEGIN_NAMESPACE(Diligent)
 
 // {2156C051-350D-4FCE-84F3-295B536622D3}

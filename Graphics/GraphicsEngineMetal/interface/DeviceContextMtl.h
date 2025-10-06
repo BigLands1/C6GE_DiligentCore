@@ -31,6 +31,9 @@
 #include "CommandQueueMtl.h"
 #include "RasterizationRateMapMtl.h"
 
+// Forward declarations of Metal protocols
+@protocol MTLCommandBuffer;
+
 DILIGENT_BEGIN_NAMESPACE(Diligent)
 
 // {2DEA7704-C586-4BA7-B938-93B239DFA268}
