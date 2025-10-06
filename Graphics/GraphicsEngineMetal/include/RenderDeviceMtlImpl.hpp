@@ -33,6 +33,8 @@
 #include "RenderDeviceBase.hpp"
 #include "RenderDeviceNextGenBase.hpp"
 
+#import <Metal/Metal.h>
+
 namespace Diligent
 {
 
