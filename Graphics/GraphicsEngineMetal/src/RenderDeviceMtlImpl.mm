@@ -113,11 +113,14 @@ id<MTLDevice> RenderDeviceMtlImpl::GetMtlDevice() const
     return m_MtlDevice;
 }
 
-void RenderDeviceMtlImpl::CreateTextureFromMtlResource(id<MTLTexture>     mtlTexture,
-                                                       const TextureDesc& TexDesc,
-                                                       RESOURCE_STATE     InitialState,
-                                                       ITexture**         ppTexture)
+void RenderDeviceMtlImpl::CreateTextureFromMtlResource(id<MTLTexture> mtlTexture,
+                                                       RESOURCE_STATE InitialState,
+                                                       ITexture**     ppTexture)
 {
+    // For now, we need to extract the TextureDesc from the Metal texture
+    // This is a stub implementation that needs proper Metal texture description extraction
+    TextureDesc TexDesc;
+    // TODO: Extract texture description from mtlTexture
     CreateTextureImpl(ppTexture, TexDesc, InitialState, mtlTexture);
 }
 
@@ -135,6 +138,130 @@ void RenderDeviceMtlImpl::CreateSparseTexture(const TextureDesc& TexDesc,
 {
     // Sparse textures not yet implemented for Metal backend
     LOG_ERROR_MESSAGE("CreateSparseTexture is not yet implemented for Metal backend");
+    *ppTexture = nullptr;
+}
+
+void RenderDeviceMtlImpl::CreateRayTracingPipelineState(const RayTracingPipelineStateCreateInfo& PSOCreateInfo,
+                                                        IPipelineState**                         ppPipelineState)
+{
+    UNSUPPORTED("Ray tracing is not yet implemented for Metal backend");
+    *ppPipelineState = nullptr;
+}
+
+void RenderDeviceMtlImpl::CreateRenderPass(const RenderPassDesc& Desc,
+                                           IRenderPass**         ppRenderPass)
+{
+    CreateRenderPassImpl(ppRenderPass, Desc);
+}
+
+void RenderDeviceMtlImpl::CreateFramebuffer(const FramebufferDesc& Desc,
+                                            IFramebuffer**         ppFramebuffer)
+{
+    CreateFramebufferImpl(ppFramebuffer, Desc);
+}
+
+void RenderDeviceMtlImpl::CreateBLAS(const BottomLevelASDesc& Desc,
+                                     IBottomLevelAS**         ppBLAS)
+{
+    UNSUPPORTED("CreateBLAS is not yet implemented for Metal backend");
+    *ppBLAS = nullptr;
+}
+
+void RenderDeviceMtlImpl::CreateTLAS(const TopLevelASDesc& Desc,
+                                     ITopLevelAS**         ppTLAS)
+{
+    UNSUPPORTED("CreateTLAS is not yet implemented for Metal backend");
+    *ppTLAS = nullptr;
+}
+
+void RenderDeviceMtlImpl::CreateSBT(const ShaderBindingTableDesc& Desc,
+                                    IShaderBindingTable**         ppSBT)
+{
+    UNSUPPORTED("CreateSBT is not yet implemented for Metal backend");
+    *ppSBT = nullptr;
+}
+
+void RenderDeviceMtlImpl::CreatePipelineResourceSignature(const PipelineResourceSignatureDesc& Desc,
+                                                          IPipelineResourceSignature**         ppSignature)
+{
+    CreatePipelineResourceSignatureImpl(ppSignature, Desc, SHADER_TYPE_UNKNOWN, false);
+}
+
+void RenderDeviceMtlImpl::CreateDeviceMemory(const DeviceMemoryCreateInfo& CreateInfo,
+                                             IDeviceMemory**               ppMemory)
+{
+    CreateDeviceMemoryImpl(ppMemory, CreateInfo);
+}
+
+void RenderDeviceMtlImpl::CreatePipelineStateCache(const PipelineStateCacheCreateInfo& CreateInfo,
+                                                   IPipelineStateCache**               ppPSOCache)
+{
+    // Pipeline state cache not yet implemented for Metal backend
+    *ppPSOCache = nullptr;
+}
+
+void RenderDeviceMtlImpl::CreateDeferredContext(IDeviceContext** ppContext)
+{
+    UNSUPPORTED("Deferred contexts are not supported in Metal backend");
+    *ppContext = nullptr;
+}
+
+SparseTextureFormatInfo RenderDeviceMtlImpl::GetSparseTextureFormatInfo(TEXTURE_FORMAT     TexFormat,
+                                                                        RESOURCE_DIMENSION Dimension,
+                                                                        Uint32             SampleCount) const
+{
+    // Sparse textures not yet supported in Metal backend
+    return TRenderDeviceBase::GetSparseTextureFormatInfo(TexFormat, Dimension, SampleCount);
+}
+
+void RenderDeviceMtlImpl::ReleaseStaleResources(bool ForceRelease)
+{
+    // Metal resource management is handled by ARC
+    // Stub implementation for now
+}
+
+void RenderDeviceMtlImpl::IdleGPU()
+{
+    // Wait for all GPU operations to complete
+    // Stub implementation for now
+}
+
+void RenderDeviceMtlImpl::CreateBLASFromMtlResource(id<MTLAccelerationStructure> mtlBLAS,
+                                                    const BottomLevelASDesc&     Desc,
+                                                    RESOURCE_STATE               InitialState,
+                                                    IBottomLevelAS**             ppBLAS)
+{
+    UNSUPPORTED("CreateBLASFromMtlResource is not yet implemented for Metal backend");
+    *ppBLAS = nullptr;
+}
+
+void RenderDeviceMtlImpl::CreateTLASFromMtlResource(id<MTLAccelerationStructure> mtlTLAS,
+                                                    const TopLevelASDesc&        Desc,
+                                                    RESOURCE_STATE               InitialState,
+                                                    ITopLevelAS**                ppTLAS)
+{
+    UNSUPPORTED("CreateTLASFromMtlResource is not yet implemented for Metal backend");
+    *ppTLAS = nullptr;
+}
+
+void RenderDeviceMtlImpl::CreateRasterizationRateMapFromMtlResource(id<MTLRasterizationRateMap> mtlRRM,
+                                                                    IRasterizationRateMapMtl**  ppRRM)
+{
+    UNSUPPORTED("CreateRasterizationRateMapFromMtlResource is not yet implemented for Metal backend");
+    *ppRRM = nullptr;
+}
+
+void RenderDeviceMtlImpl::CreateRasterizationRateMap(const RasterizationRateMapCreateInfo& CreateInfo,
+                                                     IRasterizationRateMapMtl**            ppRRM)
+{
+    UNSUPPORTED("CreateRasterizationRateMap is not yet implemented for Metal backend");
+    *ppRRM = nullptr;
+}
+
+void RenderDeviceMtlImpl::TestTextureFormat(TEXTURE_FORMAT TexFormat)
+{
+    // Texture format testing for Metal backend
+    // Stub implementation for now
 }
 
 } // namespace Diligent

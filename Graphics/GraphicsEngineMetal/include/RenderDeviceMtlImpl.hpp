@@ -94,10 +94,9 @@ public:
     virtual id<MTLDevice> DILIGENT_CALL_TYPE GetMtlDevice() const override final;
 
     /// Implementation of IRenderDeviceMtl::CreateTextureFromMtlResource().
-    virtual void DILIGENT_CALL_TYPE CreateTextureFromMtlResource(id<MTLTexture>     mtlTexture,
-                                                                 const TextureDesc& TexDesc,
-                                                                 RESOURCE_STATE     InitialState,
-                                                                 ITexture**         ppTexture) override final;
+    virtual void DILIGENT_CALL_TYPE CreateTextureFromMtlResource(id<MTLTexture> mtlTexture,
+                                                                 RESOURCE_STATE InitialState,
+                                                                 ITexture**     ppTexture) override final;
 
     /// Implementation of IRenderDeviceMtl::CreateBufferFromMtlResource().
     virtual void DILIGENT_CALL_TYPE CreateBufferFromMtlResource(id<MTLBuffer>        mtlBuffer,
@@ -109,6 +108,79 @@ public:
     virtual void DILIGENT_CALL_TYPE CreateSparseTexture(const TextureDesc& TexDesc,
                                                         IDeviceMemory*     pMemory,
                                                         ITexture**         ppTexture) override final;
+
+    /// Implementation of IRenderDevice::CreateRayTracingPipelineState() in Metal backend.
+    virtual void DILIGENT_CALL_TYPE CreateRayTracingPipelineState(const RayTracingPipelineStateCreateInfo& PSOCreateInfo,
+                                                                  IPipelineState**                         ppPipelineState) override final;
+
+    /// Implementation of IRenderDevice::CreateRenderPass() in Metal backend.
+    virtual void DILIGENT_CALL_TYPE CreateRenderPass(const RenderPassDesc& Desc,
+                                                     IRenderPass**         ppRenderPass) override final;
+
+    /// Implementation of IRenderDevice::CreateFramebuffer() in Metal backend.
+    virtual void DILIGENT_CALL_TYPE CreateFramebuffer(const FramebufferDesc& Desc,
+                                                      IFramebuffer**         ppFramebuffer) override final;
+
+    /// Implementation of IRenderDevice::CreateBLAS() in Metal backend.
+    virtual void DILIGENT_CALL_TYPE CreateBLAS(const BottomLevelASDesc& Desc,
+                                               IBottomLevelAS**         ppBLAS) override final;
+
+    /// Implementation of IRenderDevice::CreateTLAS() in Metal backend.
+    virtual void DILIGENT_CALL_TYPE CreateTLAS(const TopLevelASDesc& Desc,
+                                               ITopLevelAS**         ppTLAS) override final;
+
+    /// Implementation of IRenderDevice::CreateSBT() in Metal backend.
+    virtual void DILIGENT_CALL_TYPE CreateSBT(const ShaderBindingTableDesc& Desc,
+                                              IShaderBindingTable**         ppSBT) override final;
+
+    /// Implementation of IRenderDevice::CreatePipelineResourceSignature() in Metal backend.
+    virtual void DILIGENT_CALL_TYPE CreatePipelineResourceSignature(const PipelineResourceSignatureDesc& Desc,
+                                                                    IPipelineResourceSignature**         ppSignature) override final;
+
+    /// Implementation of IRenderDevice::CreateDeviceMemory() in Metal backend.
+    virtual void DILIGENT_CALL_TYPE CreateDeviceMemory(const DeviceMemoryCreateInfo& CreateInfo,
+                                                       IDeviceMemory**               ppMemory) override final;
+
+    /// Implementation of IRenderDevice::CreatePipelineStateCache() in Metal backend.
+    virtual void DILIGENT_CALL_TYPE CreatePipelineStateCache(const PipelineStateCacheCreateInfo& CreateInfo,
+                                                             IPipelineStateCache**               ppPSOCache) override final;
+
+    /// Implementation of IRenderDevice::CreateDeferredContext() in Metal backend.
+    virtual void DILIGENT_CALL_TYPE CreateDeferredContext(IDeviceContext** ppContext) override final;
+
+    /// Implementation of IRenderDevice::GetSparseTextureFormatInfo() in Metal backend.
+    virtual SparseTextureFormatInfo DILIGENT_CALL_TYPE GetSparseTextureFormatInfo(TEXTURE_FORMAT     TexFormat,
+                                                                                  RESOURCE_DIMENSION Dimension,
+                                                                                  Uint32             SampleCount) const override final;
+
+    /// Implementation of IRenderDevice::ReleaseStaleResources() in Metal backend.
+    virtual void DILIGENT_CALL_TYPE ReleaseStaleResources(bool ForceRelease = false) override final;
+
+    /// Implementation of IRenderDevice::IdleGPU() in Metal backend.
+    virtual void DILIGENT_CALL_TYPE IdleGPU() override final;
+
+    /// Implementation of IRenderDeviceMtl::CreateBLASFromMtlResource().
+    virtual void DILIGENT_CALL_TYPE CreateBLASFromMtlResource(id<MTLAccelerationStructure> mtlBLAS,
+                                                              const BottomLevelASDesc&     Desc,
+                                                              RESOURCE_STATE               InitialState,
+                                                              IBottomLevelAS**             ppBLAS) override final;
+
+    /// Implementation of IRenderDeviceMtl::CreateTLASFromMtlResource().
+    virtual void DILIGENT_CALL_TYPE CreateTLASFromMtlResource(id<MTLAccelerationStructure> mtlTLAS,
+                                                              const TopLevelASDesc&        Desc,
+                                                              RESOURCE_STATE               InitialState,
+                                                              ITopLevelAS**                ppTLAS) override final;
+
+    /// Implementation of IRenderDeviceMtl::CreateRasterizationRateMapFromMtlResource().
+    virtual void DILIGENT_CALL_TYPE CreateRasterizationRateMapFromMtlResource(id<MTLRasterizationRateMap> mtlRRM,
+                                                                              IRasterizationRateMapMtl**  ppRRM) override final;
+
+    /// Implementation of IRenderDeviceMtl::CreateRasterizationRateMap().
+    virtual void DILIGENT_CALL_TYPE CreateRasterizationRateMap(const RasterizationRateMapCreateInfo& CreateInfo,
+                                                               IRasterizationRateMapMtl**            ppRRM) override final;
+
+protected:
+    virtual void TestTextureFormat(TEXTURE_FORMAT TexFormat) override final;
 
 private:
     id<MTLDevice> m_MtlDevice = nil;
