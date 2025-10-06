@@ -88,7 +88,7 @@ DILIGENT_BEGIN_INTERFACE(IDeviceContextMtl, IDeviceContext)
     VIRTUAL void METHOD(SetTileThreadgroupMemoryLength)(THIS_
                                                         Uint32 Length,
                                                         Uint32 Offset,
-                                                        Uint32 Index) API_AVAILABLE(ios(11), macosx(11.0), tvos(14.5)) PURE;
+                                                        Uint32 Index) PURE;
 };
 DILIGENT_END_INTERFACE
 

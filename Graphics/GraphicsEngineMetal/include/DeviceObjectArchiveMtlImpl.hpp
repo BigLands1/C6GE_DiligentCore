@@ -39,7 +39,7 @@ namespace Diligent
 class DeviceObjectArchiveMtlImpl
 {
 public:
-    DeviceObjectArchiveMtlImpl() = default;
+    DeviceObjectArchiveMtlImpl()  = default;
     ~DeviceObjectArchiveMtlImpl() = default;
 
     // Placeholder for Metal-specific archive functionality
