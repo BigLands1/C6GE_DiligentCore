@@ -24,8 +24,6 @@
  *  of the possibility of such damages.
  */
 
-#include "pch.h"
-
 #include "FramebufferMtlImpl.hpp"
 #include "RenderDeviceMtlImpl.hpp"
 
