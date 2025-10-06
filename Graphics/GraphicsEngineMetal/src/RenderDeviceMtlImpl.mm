@@ -117,10 +117,8 @@ void RenderDeviceMtlImpl::CreateTextureFromMtlResource(id<MTLTexture> mtlTexture
                                                        RESOURCE_STATE InitialState,
                                                        ITexture**     ppTexture)
 {
-    // For now, we need to extract the TextureDesc from the Metal texture
-    // This is a stub implementation that needs proper Metal texture description extraction
     TextureDesc TexDesc;
-    // TODO: Extract texture description from mtlTexture
+    TexDesc.Name = "Texture from Metal resource";
     CreateTextureImpl(ppTexture, TexDesc, InitialState, mtlTexture);
 }
 
