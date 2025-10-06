@@ -51,7 +51,7 @@ static DILIGENT_CONSTEXPR INTERFACE_ID IID_BottomLevelASMtl =
 DILIGENT_BEGIN_INTERFACE(IBottomLevelASMtl, IBottomLevelAS)
 {
     /// Returns a pointer to a Metal acceleration structure object.
-    VIRTUAL id<MTLAccelerationStructure> METHOD(GetMtlAccelerationStructure)(THIS) CONST API_AVAILABLE(ios(14), macosx(11.0)) API_UNAVAILABLE(tvos) PURE;
+    VIRTUAL id<MTLAccelerationStructure> METHOD(GetMtlAccelerationStructure)(THIS) CONST PURE;
 };
 DILIGENT_END_INTERFACE
 
