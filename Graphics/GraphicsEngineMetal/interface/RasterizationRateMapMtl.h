@@ -31,9 +31,8 @@
 #include "../../GraphicsEngine/interface/Buffer.h"
 #include "../../GraphicsEngine/interface/TextureView.h"
 
-#if PLATFORM_TVOS
-@protocol MTLRasterizationRateMap; // Not available in tvOS
-#endif
+// Forward declarations of Metal protocols
+@protocol MTLRasterizationRateMap;
 
 DILIGENT_BEGIN_NAMESPACE(Diligent)
 

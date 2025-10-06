@@ -30,9 +30,11 @@
 #include "../../GraphicsEngine/interface/RenderDevice.h"
 #include "RasterizationRateMapMtl.h"
 
-#if PLATFORM_TVOS
-@protocol MTLAccelerationStructure; // Not available in tvOS
-#endif
+// Forward declarations of Metal protocols
+@protocol MTLDevice;
+@protocol MTLTexture;
+@protocol MTLBuffer;
+@protocol MTLAccelerationStructure;
 
 DILIGENT_BEGIN_NAMESPACE(Diligent)
 

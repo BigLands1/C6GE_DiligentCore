@@ -29,6 +29,9 @@
 
 #include "../../GraphicsEngine/interface/Fence.h"
 
+// Forward declarations of Metal protocols
+@protocol MTLSharedEvent;
+
 DILIGENT_BEGIN_NAMESPACE(Diligent)
 
 // {54FE9F8F-FBBF-4ABB-8280-D980982DA364}
