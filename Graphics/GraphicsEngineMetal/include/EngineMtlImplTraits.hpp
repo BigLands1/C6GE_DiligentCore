@@ -47,6 +47,8 @@
 #include "PipelineStateCacheMtl.h"
 #include "CommandQueueMtl.h"
 #include "DeviceContextMtl.h"
+#include "Framebuffer.h"
+#include "ShaderBindingTable.h"
 
 namespace Diligent
 {
@@ -64,8 +66,10 @@ class SamplerMtlImpl;
 class FenceMtlImpl;
 class QueryMtlImpl;
 class RenderPassMtlImpl;
+class FramebufferMtlImpl;
 class BottomLevelASMtlImpl;
 class TopLevelASMtlImpl;
+class ShaderBindingTableMtlImpl;
 class PipelineResourceSignatureMtlImpl;
 class DeviceMemoryMtlImpl;
 class PipelineStateCacheMtlImpl;
@@ -88,8 +92,10 @@ struct EngineMtlImplTraits
     using SamplerInterface                   = ISamplerMtl;
     using FenceInterface                     = IFenceMtl;
     using QueryInterface                     = IQueryMtl;
+    using FramebufferInterface               = IFramebuffer;
     using BottomLevelASInterface             = IBottomLevelASMtl;
     using TopLevelASInterface                = ITopLevelASMtl;
+    using ShaderBindingTableInterface        = IShaderBindingTable;
     using PipelineResourceSignatureInterface = IPipelineResourceSignature;
     using CommandQueueInterface              = ICommandQueueMtl;
     using DeviceMemoryInterface              = IDeviceMemoryMtl;
@@ -108,8 +114,10 @@ struct EngineMtlImplTraits
     using FenceImplType                     = FenceMtlImpl;
     using QueryImplType                     = QueryMtlImpl;
     using RenderPassImplType                = RenderPassMtlImpl;
+    using FramebufferImplType               = FramebufferMtlImpl;
     using BottomLevelASImplType             = BottomLevelASMtlImpl;
     using TopLevelASImplType                = TopLevelASMtlImpl;
+    using ShaderBindingTableImplType        = ShaderBindingTableMtlImpl;
     using PipelineResourceSignatureImplType = PipelineResourceSignatureMtlImpl;
     using DeviceMemoryImplType              = DeviceMemoryMtlImpl;
     using PipelineStateCacheImplType        = PipelineStateCacheMtlImpl;

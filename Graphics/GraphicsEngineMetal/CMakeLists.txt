@@ -10,12 +10,14 @@ set(INCLUDE
     include/DeviceObjectArchiveMtlImpl.hpp
     include/EngineMtlImplTraits.hpp
     include/FenceMtlImpl.hpp
+    include/FramebufferMtlImpl.hpp
     include/PipelineResourceSignatureMtlImpl.hpp
     include/PipelineStateMtlImpl.hpp
     include/QueryMtlImpl.hpp
     include/RenderDeviceMtlImpl.hpp
     include/RenderPassMtlImpl.hpp
     include/SamplerMtlImpl.hpp
+    include/ShaderBindingTableMtlImpl.hpp
     include/ShaderMtlImpl.hpp
     include/TextureMtlImpl.hpp
     include/TextureViewMtlImpl.hpp
@@ -51,12 +53,14 @@ set(SRC
     src/BufferViewMtlImpl.mm
     src/DeviceContextMtlImpl.mm
     src/FenceMtlImpl.mm
+    src/FramebufferMtlImpl.mm
     src/PipelineResourceSignatureMtlImpl.mm
     src/PipelineStateMtlImpl.mm
     src/QueryMtlImpl.mm
     src/RenderDeviceMtlImpl.mm
     src/RenderPassMtlImpl.mm
     src/SamplerMtlImpl.mm
+    src/ShaderBindingTableMtlImpl.mm
     src/ShaderMtlImpl.mm
     src/TextureMtlImpl.mm
     src/TextureViewMtlImpl.mm
