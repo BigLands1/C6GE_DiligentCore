@@ -47,6 +47,7 @@ BufferViewMtlImpl::BufferViewMtlImpl(IReferenceCounters*   pRefCounters,
         {
             auto* pBufferMtl = ClassPtrCast<BufferMtlImpl>(pBuffer);
             id<MTLBuffer> mtlBuffer = pBufferMtl->GetMtlResource();
+            (void)mtlBuffer; // Suppress unused warning - will be used when texture buffer views are implemented
             
             // Create texture view for formatted buffer
             // Note: Metal texture buffers are created differently than Vulkan
