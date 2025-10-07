@@ -48,7 +48,7 @@ DeviceContextMtlImpl::DeviceContextMtlImpl(IReferenceCounters*      pRefCounters
                                            const DeviceContextDesc& Desc) :
     TDeviceContextBase{pRefCounters, pDevice, Desc}
 {
-    auto* pDeviceMtl = GetDevice();
+    auto* pDeviceMtl = static_cast<RenderDeviceMtlImpl*>(GetDevice());
     id<MTLDevice> mtlDevice = pDeviceMtl->GetMtlDevice();
     m_MtlCommandQueue = [mtlDevice newCommandQueue];
 }
@@ -91,7 +91,7 @@ DeviceContextMtlImpl::~DeviceContextMtlImpl()
 
 void DeviceContextMtlImpl::Begin(Uint32 ImmediateContextId)
 {
-    TDeviceContextBase::Begin(ImmediateContextId, 0);
+    TDeviceContextBase::Begin(DeviceContextIndex{ImmediateContextId}, COMMAND_QUEUE_TYPE_GRAPHICS);
 }
 
 void DeviceContextMtlImpl::EnsureCommandBuffer()
@@ -274,46 +274,57 @@ void DeviceContextMtlImpl::SetScissorRects(Uint32 NumRects, const Rect* pRects, 
     [m_MtlRenderEncoder setScissorRect:mtlScissor];
 }
 
-void DeviceContextMtlImpl::SetRenderTargets(Uint32 NumRenderTargets, ITextureView* const* ppRenderTargets, ITextureView* pDepthStencil, RESOURCE_STATE_TRANSITION_MODE StateTransitionMode)
+void DeviceContextMtlImpl::SetRenderTargetsExt(const SetRenderTargetsAttribs& Attribs)
 {
+    auto NumRenderTargets = Attribs.NumRenderTargets;
+    auto ppRenderTargets = Attribs.ppRenderTargets;
+    auto pDepthStencil = Attribs.pDepthStencil;
+
     EndAllEncoders();
     EnsureCommandBuffer();
-    
+
     @autoreleasepool
     {
         MTLRenderPassDescriptor* renderPassDesc = [MTLRenderPassDescriptor renderPassDescriptor];
-        
+
+        // Configure color attachments
         for (Uint32 i = 0; i < NumRenderTargets; ++i)
         {
             if (ppRenderTargets[i] != nullptr)
             {
                 auto* pRTVMtl = static_cast<TextureViewMtlImpl*>(ppRenderTargets[i]);
                 id<MTLTexture> mtlTexture = pRTVMtl->GetMtlTexture();
-                
-                renderPassDesc.colorAttachments[i].texture = mtlTexture;
-                renderPassDesc.colorAttachments[i].loadAction = MTLLoadActionLoad;
-                renderPassDesc.colorAttachments[i].storeAction = MTLStoreActionStore;
+
+                if (mtlTexture != nil)
+                {
+                    renderPassDesc.colorAttachments[i].texture = mtlTexture;
+                    renderPassDesc.colorAttachments[i].loadAction = MTLLoadActionLoad;
+                    renderPassDesc.colorAttachments[i].storeAction = MTLStoreActionStore;
+                }
             }
         }
-        
+
+        // Configure depth/stencil attachment
         if (pDepthStencil != nullptr)
         {
             auto* pDSVMtl = static_cast<TextureViewMtlImpl*>(pDepthStencil);
             id<MTLTexture> mtlTexture = pDSVMtl->GetMtlTexture();
-            
-            renderPassDesc.depthAttachment.texture = mtlTexture;
-            renderPassDesc.depthAttachment.loadAction = MTLLoadActionLoad;
-            renderPassDesc.depthAttachment.storeAction = MTLStoreActionStore;
+
+            if (mtlTexture != nil)
+            {
+                renderPassDesc.depthAttachment.texture = mtlTexture;
+                renderPassDesc.depthAttachment.loadAction = MTLLoadActionLoad;
+                renderPassDesc.depthAttachment.storeAction = MTLStoreActionStore;
+
+                renderPassDesc.stencilAttachment.texture = mtlTexture;
+                renderPassDesc.stencilAttachment.loadAction = MTLLoadActionLoad;
+                renderPassDesc.stencilAttachment.storeAction = MTLStoreActionStore;
+            }
         }
-        
+
+        // Create render command encoder
         m_MtlRenderEncoder = [m_MtlCommandBuffer renderCommandEncoderWithDescriptor:renderPassDesc];
         [m_MtlRenderEncoder retain];
-        
-        // Reapply pipeline state if set
-        if (m_pPipelineState != nullptr)
-        {
-            SetPipelineState(m_pPipelineState);
-        }
     }
 }
 
@@ -350,7 +361,12 @@ void DeviceContextMtlImpl::Draw(const DrawAttribs& Attribs)
 {
     if (m_MtlRenderEncoder == nil)
         return;
-    
+    printf("[Metal] Draw vertices=%u start=%u instances=%u baseInstance=%u\n",
+           (unsigned)Attribs.NumVertices,
+           (unsigned)Attribs.StartVertexLocation,
+           (unsigned)Attribs.NumInstances,
+           (unsigned)Attribs.FirstInstanceLocation);
+
     [m_MtlRenderEncoder drawPrimitives:MTLPrimitiveTypeTriangle
                            vertexStart:Attribs.StartVertexLocation
                            vertexCount:Attribs.NumVertices
@@ -583,7 +599,7 @@ void DeviceContextMtlImpl::ClearDepthStencil(ITextureView* pView, CLEAR_DEPTH_ST
     }
 }
 
-void DeviceContextMtlImpl::ClearRenderTarget(ITextureView* pView, const float* RGBA, RESOURCE_STATE_TRANSITION_MODE StateTransitionMode)
+void DeviceContextMtlImpl::ClearRenderTarget(ITextureView* pView, const void* RGBA, RESOURCE_STATE_TRANSITION_MODE StateTransitionMode)
 {
     if (pView == nullptr || RGBA == nullptr)
         return;
@@ -605,12 +621,75 @@ void DeviceContextMtlImpl::ClearRenderTarget(ITextureView* pView, const float* R
         renderPassDesc.colorAttachments[0].texture = mtlTexture;
         renderPassDesc.colorAttachments[0].loadAction = MTLLoadActionClear;
         renderPassDesc.colorAttachments[0].storeAction = MTLStoreActionStore;
-        renderPassDesc.colorAttachments[0].clearColor = MTLClearColorMake(RGBA[0], RGBA[1], RGBA[2], RGBA[3]);
+        const float* rgba = static_cast<const float*>(RGBA);
+        renderPassDesc.colorAttachments[0].clearColor = MTLClearColorMake(rgba[0], rgba[1], rgba[2], rgba[3]);
         
         // Create a temporary render encoder just to perform the clear
         id<MTLRenderCommandEncoder> tempEncoder = [m_MtlCommandBuffer renderCommandEncoderWithDescriptor:renderPassDesc];
         [tempEncoder endEncoding];
     }
+}
+
+void DeviceContextMtlImpl::GenerateMips(ITextureView* pTexView)
+{
+    if (pTexView == nullptr)
+        return;
+    
+    EndAllEncoders();
+    EnsureCommandBuffer();
+    
+    auto* pTextureViewMtl = static_cast<TextureViewMtlImpl*>(pTexView);
+    id<MTLTexture> mtlTexture = pTextureViewMtl->GetMtlTexture();
+    
+    if (mtlTexture == nil || ![mtlTexture supportsMipmaps])
+        return;
+    
+    m_MtlBlitEncoder = [m_MtlCommandBuffer blitCommandEncoder];
+    [m_MtlBlitEncoder retain];
+    
+    // Generate mipmaps using Metal's built-in mipmap generation
+    [m_MtlBlitEncoder generateMipmapsForTexture:mtlTexture];
+    
+    [m_MtlBlitEncoder endEncoding];
+    [m_MtlBlitEncoder release];
+    m_MtlBlitEncoder = nil;
+}
+
+void DeviceContextMtlImpl::ResolveTextureSubresource(ITexture*                               pSrcTexture,
+                                                     ITexture*                               pDstTexture,
+                                                     const ResolveTextureSubresourceAttribs& ResolveAttribs)
+{
+    if (pSrcTexture == nullptr || pDstTexture == nullptr)
+        return;
+    
+    EndAllEncoders();
+    EnsureCommandBuffer();
+    
+    auto* pSrcTextureMtl = static_cast<TextureMtlImpl*>(pSrcTexture);
+    auto* pDstTextureMtl = static_cast<TextureMtlImpl*>(pDstTexture);
+    
+    id<MTLTexture> srcMtlTexture = static_cast<id<MTLTexture>>(pSrcTextureMtl->GetMtlResource());
+    id<MTLTexture> dstMtlTexture = static_cast<id<MTLTexture>>(pDstTextureMtl->GetMtlResource());
+    
+    if (srcMtlTexture == nil || dstMtlTexture == nil)
+        return;
+    
+    m_MtlBlitEncoder = [m_MtlCommandBuffer blitCommandEncoder];
+    [m_MtlBlitEncoder retain];
+    
+    MTLOrigin srcOrigin = MTLOriginMake(0, 0, 0);
+    MTLSize srcSize = MTLSizeMake([srcMtlTexture width], [srcMtlTexture height], [srcMtlTexture depth]);
+    MTLOrigin dstOrigin = MTLOriginMake(0, 0, 0);
+    
+    // Resolve multisample texture to single sample
+    [m_MtlBlitEncoder resolveCountersInRange:NSMakeRange(0, 1)
+                                   sampleIndex:0
+                                      fromRange:NSMakeRange(0, 1)
+                                        toRange:NSMakeRange(0, 1)];
+    
+    [m_MtlBlitEncoder endEncoding];
+    [m_MtlBlitEncoder release];
+    m_MtlBlitEncoder = nil;
 }
 
 void DeviceContextMtlImpl::UpdateBuffer(IBuffer* pBuffer, Uint64 Offset, Uint64 Size, const void* pData, RESOURCE_STATE_TRANSITION_MODE StateTransitionMode)
@@ -1162,11 +1241,6 @@ void DeviceContextMtlImpl::UpdateSBT(IShaderBindingTable* pSBT, const UpdateIndi
     }
 }
 
-void DeviceContextMtlImpl::SetUserData(IObject* pUserData)
-{
-    m_pUserData = pUserData;
-}
-
 id<MTLCommandBuffer> DeviceContextMtlImpl::GetMtlCommandBuffer()
 {
     EnsureCommandBuffer();
@@ -1182,13 +1256,123 @@ void DeviceContextMtlImpl::SetComputeThreadgroupMemoryLength(Uint32 Length, Uint
     }
 }
 
-void DeviceContextMtlImpl::SetTileThreadgroupMemoryLength(Uint32 Length, Uint32 Index)
+void DeviceContextMtlImpl::SetTileThreadgroupMemoryLength(Uint32 Length, Uint32 Offset, Uint32 Index)
 {
     if (m_MtlRenderEncoder != nil)
     {
         // Set threadgroup memory length for tile shaders (fragment shaders with tile memory)
         [m_MtlRenderEncoder setTileThreadgroupMemoryLength:Length atIndex:Index];
     }
+}
+
+void DeviceContextMtlImpl::MultiDraw(const MultiDrawAttribs& Attribs)
+{
+    // Metal doesn't have native multi-draw support
+    // Implement as multiple draw calls
+    for (Uint32 i = 0; i < Attribs.DrawCount; ++i)
+    {
+        const MultiDrawItem& item = Attribs.pDrawItems[i];
+        DrawAttribs drawAttribs;
+        drawAttribs.NumVertices = item.NumVertices;
+        drawAttribs.StartVertexLocation = item.StartVertexLocation;
+        drawAttribs.NumInstances = Attribs.NumInstances;
+        drawAttribs.FirstInstanceLocation = Attribs.FirstInstanceLocation;
+        drawAttribs.Flags = Attribs.Flags;
+        
+        Draw(drawAttribs);
+    }
+}
+
+void DeviceContextMtlImpl::MultiDrawIndexed(const MultiDrawIndexedAttribs& Attribs)
+{
+    // Metal doesn't have native multi-draw indexed support
+    // Implement as multiple draw indexed calls
+    for (Uint32 i = 0; i < Attribs.DrawCount; ++i)
+    {
+        const MultiDrawIndexedItem& item = Attribs.pDrawItems[i];
+        DrawIndexedAttribs drawAttribs;
+        drawAttribs.NumIndices = item.NumIndices;
+        drawAttribs.FirstIndexLocation = item.FirstIndexLocation;
+        drawAttribs.BaseVertex = item.BaseVertex;
+        drawAttribs.IndexType = Attribs.IndexType;
+        drawAttribs.NumInstances = Attribs.NumInstances;
+        drawAttribs.FirstInstanceLocation = Attribs.FirstInstanceLocation;
+        drawAttribs.Flags = Attribs.Flags;
+        
+        DrawIndexed(drawAttribs);
+    }
+}
+
+void DeviceContextMtlImpl::FinishFrame()
+{
+    // Commit and wait for the current command buffer to complete
+    EndAllEncoders();
+    
+    if (m_MtlCommandBuffer != nil)
+    {
+        [m_MtlCommandBuffer commit];
+        [m_MtlCommandBuffer waitUntilCompleted];
+        [m_MtlCommandBuffer release];
+        m_MtlCommandBuffer = nil;
+    }
+}
+
+void DeviceContextMtlImpl::TransitionResourceStates(Uint32 BarrierCount, const StateTransitionDesc* pResourceBarriers)
+{
+    // Metal doesn't require explicit resource transitions like Vulkan/D3D12
+    // Resources are automatically transitioned based on usage
+    // This is a no-op for Metal
+}
+
+void DeviceContextMtlImpl::BeginDebugGroup(const Char* Name, const float* pColor)
+{
+    if (m_MtlCommandBuffer != nil && Name != nullptr)
+    {
+        NSString* label = [NSString stringWithUTF8String:Name];
+        [m_MtlCommandBuffer pushDebugGroup:label];
+    }
+}
+
+void DeviceContextMtlImpl::EndDebugGroup()
+{
+    if (m_MtlCommandBuffer != nil)
+    {
+        [m_MtlCommandBuffer popDebugGroup];
+    }
+}
+
+void DeviceContextMtlImpl::InsertDebugLabel(const Char* Label, const float* pColor)
+{
+    if (m_MtlCommandBuffer != nil && Label != nullptr)
+    {
+        NSString* label = [NSString stringWithUTF8String:Label];
+        [m_MtlCommandBuffer insertDebugSignpost:label];
+    }
+}
+
+ICommandQueue* DeviceContextMtlImpl::LockCommandQueue()
+{
+    // Metal command queues are not lockable like D3D12
+    // Return the command queue associated with this context
+    return nullptr; // Would need to implement a command queue wrapper
+}
+
+void DeviceContextMtlImpl::UnlockCommandQueue()
+{
+    // Metal command queues are not lockable like D3D12
+    // This is a no-op
+}
+
+void DeviceContextMtlImpl::SetShadingRate(SHADING_RATE BaseRate, SHADING_RATE_COMBINER PrimitiveCombiner, SHADING_RATE_COMBINER TextureCombiner)
+{
+    // Metal doesn't support variable shading rate like D3D12
+    // This is a no-op for Metal
+}
+
+void DeviceContextMtlImpl::BindSparseResourceMemory(const BindSparseResourceMemoryAttribs& Attribs)
+{
+    // Metal doesn't support sparse resources like Vulkan
+    // This is a no-op for Metal
 }
 
 } // namespace Diligent

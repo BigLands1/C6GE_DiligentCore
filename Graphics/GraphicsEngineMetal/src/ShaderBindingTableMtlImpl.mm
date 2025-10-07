@@ -26,20 +26,109 @@
 
 #include "ShaderBindingTableMtlImpl.hpp"
 #include "RenderDeviceMtlImpl.hpp"
+#include "../../../Primitives/interface/Errors.hpp"
+#include <atomic>
 
 namespace Diligent
 {
+
+static std::atomic<Int32> g_NextUniqueID{1};
 
 ShaderBindingTableMtlImpl::ShaderBindingTableMtlImpl(IReferenceCounters*           pRefCounters,
                                                      RenderDeviceMtlImpl*          pDevice,
                                                      const ShaderBindingTableDesc& Desc,
                                                      bool                          bIsDeviceInternal) :
-    TShaderBindingTableBase{pRefCounters, pDevice, Desc, bIsDeviceInternal}
+    TBase{pRefCounters},
+    m_Desc{Desc},
+    m_UniqueID{g_NextUniqueID.fetch_add(1)}
 {
+    DEV_ERROR("Shader binding tables are not supported in Metal backend");
 }
 
 ShaderBindingTableMtlImpl::~ShaderBindingTableMtlImpl()
 {
+}
+
+const ShaderBindingTableDesc& ShaderBindingTableMtlImpl::GetDesc() const
+{
+    return m_Desc;
+}
+
+Bool ShaderBindingTableMtlImpl::Verify(VERIFY_SBT_FLAGS Flags) const
+{
+    UNSUPPORTED("Shader binding tables are not supported in Metal backend");
+    return false;
+}
+
+void ShaderBindingTableMtlImpl::Reset(IPipelineState* pPSO)
+{
+    UNSUPPORTED("Shader binding tables are not supported in Metal backend");
+}
+
+void ShaderBindingTableMtlImpl::ResetHitGroups()
+{
+    UNSUPPORTED("Shader binding tables are not supported in Metal backend");
+}
+
+void ShaderBindingTableMtlImpl::BindRayGenShader(const Char* pShaderGroupName,
+                                                 const void* pData,
+                                                 Uint32      DataSize)
+{
+    UNSUPPORTED("Shader binding tables are not supported in Metal backend");
+}
+
+void ShaderBindingTableMtlImpl::BindMissShader(const Char* pShaderGroupName,
+                                               Uint32      MissIndex,
+                                               const void* pData,
+                                               Uint32      DataSize)
+{
+    UNSUPPORTED("Shader binding tables are not supported in Metal backend");
+}
+
+void ShaderBindingTableMtlImpl::BindHitGroupForGeometry(ITopLevelAS* pTLAS,
+                                                        const Char*  pInstanceName,
+                                                        const Char*  pGeometryName,
+                                                        Uint32       RayOffsetInHitGroupIndex,
+                                                        const Char*  pShaderGroupName,
+                                                        const void*  pData,
+                                                        Uint32       DataSize)
+{
+    UNSUPPORTED("Shader binding tables are not supported in Metal backend");
+}
+
+void ShaderBindingTableMtlImpl::BindHitGroupByIndex(Uint32      BindingIndex,
+                                                    const Char* pShaderGroupName,
+                                                    const void* pData,
+                                                    Uint32      DataSize)
+{
+    UNSUPPORTED("Shader binding tables are not supported in Metal backend");
+}
+
+void ShaderBindingTableMtlImpl::BindHitGroupForInstance(ITopLevelAS* pTLAS,
+                                                        const Char*  pInstanceName,
+                                                        Uint32       RayOffsetInHitGroupIndex,
+                                                        const Char*  pShaderGroupName,
+                                                        const void*  pData,
+                                                        Uint32       DataSize)
+{
+    UNSUPPORTED("Shader binding tables are not supported in Metal backend");
+}
+
+void ShaderBindingTableMtlImpl::BindHitGroupForTLAS(ITopLevelAS* pTLAS,
+                                                    Uint32       RayOffsetInHitGroupIndex,
+                                                    const Char*  pShaderGroupName,
+                                                    const void*  pData,
+                                                    Uint32       DataSize)
+{
+    UNSUPPORTED("Shader binding tables are not supported in Metal backend");
+}
+
+void ShaderBindingTableMtlImpl::BindCallableShader(const Char* pShaderGroupName,
+                                                   Uint32      CallableIndex,
+                                                   const void* pData,
+                                                   Uint32      DataSize)
+{
+    UNSUPPORTED("Shader binding tables are not supported in Metal backend");
 }
 
 } // namespace Diligent

@@ -49,6 +49,12 @@ public:
 
     ~RenderPassMtlImpl();
 
+    const SubpassDesc& GetSubpass(Uint32 SubpassIndex) const
+    {
+        VERIFY_EXPR(SubpassIndex < m_Desc.SubpassCount);
+        return m_Desc.pSubpasses[SubpassIndex];
+    }
+
     IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_RenderPass, TBase)
 };
 

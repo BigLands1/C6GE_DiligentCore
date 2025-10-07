@@ -27,22 +27,45 @@
 #pragma once
 
 /// \file
-/// Declaration of Diligent::DeviceObjectArchiveMtlImpl class
+/// Declaration of Diligent::DeviceMemoryMtlImpl class
 
-#include "../../GraphicsEngine/include/DeviceObjectArchive.hpp"
 #include "EngineMtlImplTraits.hpp"
+#include "DeviceMemoryBase.hpp"
 
 namespace Diligent
 {
 
-/// Device object archive implementation in Metal backend.
-class DeviceObjectArchiveMtlImpl
+/// Device memory object implementation in Metal backend.
+class DeviceMemoryMtlImpl final : public DeviceMemoryBase<EngineMtlImplTraits>
 {
 public:
-    DeviceObjectArchiveMtlImpl()  = default;
-    ~DeviceObjectArchiveMtlImpl() = default;
+    using TDeviceMemoryBase = DeviceMemoryBase<EngineMtlImplTraits>;
 
-    // Placeholder for Metal-specific archive functionality
+    static constexpr INTERFACE_ID IID_InternalImpl =
+        {0x8b2c6f8a, 0x4c5d, 0x4e8f, {0x9b, 0x1a, 0x2c, 0x3d, 0x5e, 0x7f, 0x8a, 0x1c}};
+
+    DeviceMemoryMtlImpl(IReferenceCounters*           pRefCounters,
+                        RenderDeviceMtlImpl*          pDevice,
+                        const DeviceMemoryCreateInfo& MemCI);
+
+    ~DeviceMemoryMtlImpl();
+
+    virtual void DILIGENT_CALL_TYPE QueryInterface(const INTERFACE_ID& IID, IObject** ppInterface) override final;
+
+    /// Implementation of IDeviceMemory::Resize().
+    virtual Bool DILIGENT_CALL_TYPE Resize(Uint64 NewSize) override final;
+
+    /// Implementation of IDeviceMemory::GetCapacity().
+    virtual Uint64 DILIGENT_CALL_TYPE GetCapacity() const override final;
+
+    /// Implementation of IDeviceMemory::IsCompatible().
+    virtual Bool DILIGENT_CALL_TYPE IsCompatible(IDeviceObject* pResource) const override final;
+
+    /// Implementation of IDeviceMemoryMtl::GetMtlResource().
+    virtual id<MTLHeap> DILIGENT_CALL_TYPE GetMtlResource() const override final;
+
+private:
+    id<MTLHeap> m_MtlHeap = nullptr;
 };
 
 } // namespace Diligent

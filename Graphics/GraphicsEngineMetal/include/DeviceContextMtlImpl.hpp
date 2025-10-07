@@ -32,12 +32,14 @@
 #include "EngineMtlImplTraits.hpp"
 #include "DeviceContextBase.hpp"
 
+#import <Metal/Metal.h>
+
 namespace Diligent
 {
 
 /// Device context implementation in Metal backend.
 /// This is a stub implementation that provides the required interface.
-class DeviceContextMtlImpl final : public DeviceContextBase<EngineMtlImplTraits>
+class DeviceContextMtlImpl : public DeviceContextBase<EngineMtlImplTraits>
 {
 public:
     using TDeviceContextBase = DeviceContextBase<EngineMtlImplTraits>;
@@ -97,11 +99,8 @@ public:
                                                     Uint32      RTWidth,
                                                     Uint32      RTHeight) override final;
 
-    /// Implementation of IDeviceContext::SetRenderTargets() in Metal backend.
-    virtual void DILIGENT_CALL_TYPE SetRenderTargets(Uint32                         NumRenderTargets,
-                                                     ITextureView* const*           ppRenderTargets,
-                                                     ITextureView*                  pDepthStencil,
-                                                     RESOURCE_STATE_TRANSITION_MODE StateTransitionMode) override final;
+    /// Implementation of IDeviceContext::SetRenderTargetsExt() in Metal backend.
+    virtual void DILIGENT_CALL_TYPE SetRenderTargetsExt(const SetRenderTargetsAttribs& Attribs) override final;
 
     /// Implementation of IDeviceContext::BeginRenderPass() in Metal backend.
     virtual void DILIGENT_CALL_TYPE BeginRenderPass(const BeginRenderPassAttribs& Attribs) override final;
@@ -145,8 +144,16 @@ public:
 
     /// Implementation of IDeviceContext::ClearRenderTarget() in Metal backend.
     virtual void DILIGENT_CALL_TYPE ClearRenderTarget(ITextureView*                  pView,
-                                                      const float*                   RGBA,
-                                                      RESOURCE_STATE_TRANSITION_MODE StateTransitionMode) override final;
+                                                      const void*                    RGBA,
+                                                      RESOURCE_STATE_TRANSITION_MODE StateTransitionMode);
+
+    /// Implementation of IDeviceContext::GenerateMips() in Metal backend.
+    virtual void DILIGENT_CALL_TYPE GenerateMips(ITextureView* pTexView) override final;
+
+    /// Implementation of IDeviceContext::ResolveTextureSubresource() in Metal backend.
+    virtual void DILIGENT_CALL_TYPE ResolveTextureSubresource(ITexture*                               pSrcTexture,
+                                                              ITexture*                               pDstTexture,
+                                                              const ResolveTextureSubresourceAttribs& ResolveAttribs) override final;
 
     /// Implementation of IDeviceContext::UpdateBuffer() in Metal backend.
     virtual void DILIGENT_CALL_TYPE UpdateBuffer(IBuffer*                       pBuffer,
@@ -249,12 +256,6 @@ public:
     /// Implementation of IDeviceContext::UpdateSBT() in Metal backend.
     virtual void DILIGENT_CALL_TYPE UpdateSBT(IShaderBindingTable* pSBT, const UpdateIndirectRTBufferAttribs* pUpdateIndirectBufferAttribs) override final;
 
-    /// Implementation of IDeviceContext::SetUserData() in Metal backend.
-    virtual void DILIGENT_CALL_TYPE SetUserData(IObject* pUserData) override final;
-
-    /// Implementation of IDeviceContext::GetUserData() in Metal backend.
-    virtual IObject* DILIGENT_CALL_TYPE GetUserData() const override final { return m_pUserData; }
-
     /// Implementation of IDeviceContextMtl::GetMtlCommandBuffer().
     virtual id<MTLCommandBuffer> DILIGENT_CALL_TYPE GetMtlCommandBuffer() override final;
 
@@ -262,11 +263,49 @@ public:
     virtual void DILIGENT_CALL_TYPE SetComputeThreadgroupMemoryLength(Uint32 Length, Uint32 Index) override final;
 
     /// Implementation of IDeviceContextMtl::SetTileThreadgroupMemoryLength().
-    virtual void DILIGENT_CALL_TYPE SetTileThreadgroupMemoryLength(Uint32 Length, Uint32 Index) override final;
+    virtual void DILIGENT_CALL_TYPE SetTileThreadgroupMemoryLength(Uint32 Length, Uint32 Offset, Uint32 Index) override final;
+
+    /// Implementation of IDeviceContext::MultiDraw() in Metal backend.
+    virtual void DILIGENT_CALL_TYPE MultiDraw(const MultiDrawAttribs& Attribs) override final;
+
+    /// Implementation of IDeviceContext::MultiDrawIndexed() in Metal backend.
+    virtual void DILIGENT_CALL_TYPE MultiDrawIndexed(const MultiDrawIndexedAttribs& Attribs) override final;
+
+    /// Implementation of IDeviceContext::FinishFrame() in Metal backend.
+    virtual void DILIGENT_CALL_TYPE FinishFrame() override final;
+
+    /// Implementation of IDeviceContext::TransitionResourceStates() in Metal backend.
+    virtual void DILIGENT_CALL_TYPE TransitionResourceStates(Uint32 BarrierCount, const StateTransitionDesc* pResourceBarriers) override final;
+
+    /// Implementation of IDeviceContext::BeginDebugGroup() in Metal backend.
+    virtual void DILIGENT_CALL_TYPE BeginDebugGroup(const Char* Name, const float* pColor) override final;
+
+    /// Implementation of IDeviceContext::EndDebugGroup() in Metal backend.
+    virtual void DILIGENT_CALL_TYPE EndDebugGroup() override final;
+
+    /// Implementation of IDeviceContext::InsertDebugLabel() in Metal backend.
+    virtual void DILIGENT_CALL_TYPE InsertDebugLabel(const Char* Label, const float* pColor) override final;
+
+    /// Implementation of IDeviceContext::LockCommandQueue() in Metal backend.
+    virtual ICommandQueue* DILIGENT_CALL_TYPE LockCommandQueue() override final;
+
+    /// Implementation of IDeviceContext::UnlockCommandQueue() in Metal backend.
+    virtual void DILIGENT_CALL_TYPE UnlockCommandQueue();
+
+    /// Implementation of IDeviceContext::SetShadingRate() in Metal backend.
+    virtual void DILIGENT_CALL_TYPE SetShadingRate(SHADING_RATE BaseRate, SHADING_RATE_COMBINER PrimitiveCombiner, SHADING_RATE_COMBINER TextureCombiner) override final;
+
+    /// Implementation of IDeviceContext::BindSparseResourceMemory() in Metal backend.
+    virtual void DILIGENT_CALL_TYPE BindSparseResourceMemory(const BindSparseResourceMemoryAttribs& Attribs) override final;
 
 private:
     void EnsureCommandBuffer();
     void EndAllEncoders();
+
+    // Temporary friend access for minimal swap chain implementation to end encoders
+    // and present command buffer. This should be removed when a proper Metal backend
+    // presentation pathway is implemented.
+    friend class SwapChainMtlImpl;
     
     id<MTLCommandQueue>          m_MtlCommandQueue    = nil;
     id<MTLCommandBuffer>         m_MtlCommandBuffer   = nil;

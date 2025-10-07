@@ -27,22 +27,17 @@
 #pragma once
 
 /// \file
-/// Declaration of Diligent::DeviceObjectArchiveMtlImpl class
+/// Declaration of Diligent::ImmutableSamplerAttribsMtl struct
 
-#include "../../GraphicsEngine/include/DeviceObjectArchive.hpp"
-#include "EngineMtlImplTraits.hpp"
+#include "BasicTypes.h"
 
 namespace Diligent
 {
 
-/// Device object archive implementation in Metal backend.
-class DeviceObjectArchiveMtlImpl
+struct ImmutableSamplerAttribsMtl
 {
-public:
-    DeviceObjectArchiveMtlImpl()  = default;
-    ~DeviceObjectArchiveMtlImpl() = default;
-
-    // Placeholder for Metal-specific archive functionality
+    Uint32 BindingIndex = ~0u;
 };
+ASSERT_SIZEOF(ImmutableSamplerAttribsMtl, 4, "The struct is used in serialization and must be tightly packed");
 
 } // namespace Diligent

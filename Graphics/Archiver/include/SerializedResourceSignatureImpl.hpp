@@ -184,10 +184,6 @@ DECLARE_DEVICE_SIGNATURE_METHODS(PipelineResourceSignatureGLImpl)
 DECLARE_DEVICE_SIGNATURE_METHODS(PipelineResourceSignatureVkImpl)
 #endif
 
-#if METAL_SUPPORTED
-DECLARE_DEVICE_SIGNATURE_METHODS(PipelineResourceSignatureMtlImpl)
-#endif
-
 #if WEBGPU_SUPPORTED
 DECLARE_DEVICE_SIGNATURE_METHODS(PipelineResourceSignatureWebGPUImpl)
 #endif

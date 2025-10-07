@@ -34,8 +34,17 @@
 namespace Diligent
 {
 
-MTLPixelFormat TextureFormatToMTLPixelFormat(TEXTURE_FORMAT TexFormat);
-TEXTURE_FORMAT MTLPixelFormatToTextureFormat(MTLPixelFormat mtlPixelFormat);
+MTLPixelFormat TextureFormatToMTLPixelFormat(TEXTURE_FORMAT TexFormat)
+{
+    // Stub implementation - Metal backend is not fully implemented
+    return MTLPixelFormatInvalid;
+}
+
+TEXTURE_FORMAT MTLPixelFormatToTextureFormat(MTLPixelFormat mtlPixelFormat)
+{
+    // Stub implementation - Metal backend is not fully implemented
+    return TEX_FORMAT_UNKNOWN;
+}
 
 void CreateSparseTextureMtl(IRenderDevice*     pDevice,
                             const TextureDesc& TexDesc,

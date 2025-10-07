@@ -90,12 +90,6 @@ SerializedResourceSignatureImpl::SerializedResourceSignatureImpl(IReferenceCount
                 CreateDeviceSignature<PipelineResourceSignatureVkImpl>(DevType, Desc, ShaderStages);
                 break;
 #endif
-#if METAL_SUPPORTED
-            case ARCHIVE_DEVICE_DATA_FLAG_METAL_MACOS:
-            case ARCHIVE_DEVICE_DATA_FLAG_METAL_IOS:
-                CreateDeviceSignature<PipelineResourceSignatureMtlImpl>(DevType, Desc, ShaderStages);
-                break;
-#endif
 #if WEBGPU_SUPPORTED
             case ARCHIVE_DEVICE_DATA_FLAG_WEBGPU:
                 CreateDeviceSignature<PipelineResourceSignatureWebGPUImpl>(DevType, Desc, ShaderStages);

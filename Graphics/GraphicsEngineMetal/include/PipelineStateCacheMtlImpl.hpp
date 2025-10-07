@@ -27,22 +27,33 @@
 #pragma once
 
 /// \file
-/// Declaration of Diligent::DeviceObjectArchiveMtlImpl class
+/// Declaration of Diligent::PipelineStateCacheMtlImpl class
 
-#include "../../GraphicsEngine/include/DeviceObjectArchive.hpp"
 #include "EngineMtlImplTraits.hpp"
+#include "PipelineStateCacheBase.hpp"
 
 namespace Diligent
 {
 
-/// Device object archive implementation in Metal backend.
-class DeviceObjectArchiveMtlImpl
+/// Implementation of a pipeline state cache object in Metal backend.
+class PipelineStateCacheMtlImpl final : public PipelineStateCacheBase<EngineMtlImplTraits>
 {
 public:
-    DeviceObjectArchiveMtlImpl()  = default;
-    ~DeviceObjectArchiveMtlImpl() = default;
+    using TPipelineStateCacheBase = PipelineStateCacheBase<EngineMtlImplTraits>;
 
-    // Placeholder for Metal-specific archive functionality
+    PipelineStateCacheMtlImpl(IReferenceCounters*                  pRefCounters,
+                              RenderDeviceMtlImpl*                 pRenderDeviceMtl,
+                              const PipelineStateCacheCreateInfo&  CreateInfo);
+
+    ~PipelineStateCacheMtlImpl();
+
+    IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_PipelineStateCacheMtl, TPipelineStateCacheBase)
+
+    /// Implementation of IPipelineStateCache::GetData().
+    virtual void DILIGENT_CALL_TYPE GetData(IDataBlob** ppData) override final;
+
+protected:
+    // Pipeline state cache is not implemented for Metal backend
 };
 
 } // namespace Diligent

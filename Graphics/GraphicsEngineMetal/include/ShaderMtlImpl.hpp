@@ -38,8 +38,10 @@ namespace Diligent
 
 class SerializedShaderImpl;
 
+class SerializedShaderImpl;
+
 /// Implementation of a shader object in Metal backend.
-class ShaderMtlImpl final : public ShaderBase<EngineMtlImplTraits>
+class ShaderMtlImpl : public ShaderBase<EngineMtlImplTraits>
 {
 public:
     using TShaderBase = ShaderBase<EngineMtlImplTraits>;
@@ -47,20 +49,20 @@ public:
     static constexpr INTERFACE_ID IID_InternalImpl =
         {0x9a8b00f1, 0x673, 0x4a39, {0xaf, 0x28, 0xa4, 0xa5, 0xd6, 0x3e, 0x84, 0xa2}};
 
-    struct CreateInfo : TShaderBase::CreateInfo
+    struct CreateInfo
     {
-        const GraphicsAdapterInfo&                  AdapterInfo;
-        IDataBlob**                                 ppCompilerOutput;
+        const RenderDeviceInfo&                   DeviceInfo;
+        const GraphicsAdapterInfo&                AdapterInfo;
+        IDataBlob**                               ppCompilerOutput;
         class IAsyncShaderCompilationTaskProcessor* pAsyncTaskProcessor;
-        std::function<void(std::string&)>           PreprocessMslSource;
+        std::function<void(std::string&)>         PreprocessMslSource;
 
-        CreateInfo(const DeviceInfo&                           _DeviceInfo,
-                   const GraphicsAdapterInfo&                  _AdapterInfo,
-                   const SerializedShaderImpl::DeArchiveData*  _pDearchiveData,
-                   IDataBlob**                                 _ppCompilerOutput,
-                   IAsyncShaderCompilationTaskProcessor*       _pAsyncTaskProcessor,
-                   std::function<void(std::string&)>           _PreprocessMslSource) :
-            TShaderBase::CreateInfo{_DeviceInfo, _pDearchiveData},
+        CreateInfo(const RenderDeviceInfo&                  _DeviceInfo,
+                   const GraphicsAdapterInfo&                _AdapterInfo,
+                   IDataBlob**                               _ppCompilerOutput,
+                   IAsyncShaderCompilationTaskProcessor*     _pAsyncTaskProcessor,
+                   std::function<void(std::string&)>         _PreprocessMslSource) :
+            DeviceInfo{_DeviceInfo},
             AdapterInfo{_AdapterInfo},
             ppCompilerOutput{_ppCompilerOutput},
             pAsyncTaskProcessor{_pAsyncTaskProcessor},
@@ -77,6 +79,21 @@ public:
     ~ShaderMtlImpl();
 
     virtual void DILIGENT_CALL_TYPE QueryInterface(const INTERFACE_ID& IID, IObject** ppInterface) override final;
+
+    /// Implementation of IShader::GetResourceCount() in Metal backend.
+    virtual Uint32 DILIGENT_CALL_TYPE GetResourceCount() const override final;
+
+    /// Implementation of IShader::GetResourceDesc() in Metal backend.
+    virtual void DILIGENT_CALL_TYPE GetResourceDesc(Uint32 Index, ShaderResourceDesc& ResourceDesc) const override final;
+
+    /// Implementation of IShader::GetConstantBufferDesc() in Metal backend.
+    virtual const ShaderCodeBufferDesc* DILIGENT_CALL_TYPE GetConstantBufferDesc(Uint32 Index) const override final;
+
+    /// Implementation of IShader::GetBytecode() in Metal backend.
+    virtual void DILIGENT_CALL_TYPE GetBytecode(const void** ppBytecode, Uint64& Size) const override final;
+
+    /// Implementation of IShaderMtl::GetMtlShaderFunction().
+    virtual id<MTLFunction> DILIGENT_CALL_TYPE GetMtlShaderFunction() const override final;
 
     /// Get the Metal library object
     id<MTLLibrary> GetMtlLibrary() const { return m_MtlLibrary; }

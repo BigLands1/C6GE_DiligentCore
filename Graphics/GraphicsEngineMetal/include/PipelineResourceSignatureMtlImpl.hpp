@@ -49,7 +49,17 @@ public:
 
     ~PipelineResourceSignatureMtlImpl();
 
+    // Explicitly destroy signature resources (mirrors pattern in other backends).
+    // Must be called before base class destructor asserts.
+    void Destruct();
+
     IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_PipelineResourceSignature, TPRSBase)
+
+    void InitSRBResourceCache(ShaderResourceCacheMtl& ResourceCache);
+
+    void CopyStaticResources(ShaderResourceCacheMtl& DstResourceCache) const;
+    // Make the base class method visible
+    using TPRSBase::CopyStaticResources;
 };
 
 } // namespace Diligent

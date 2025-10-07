@@ -42,9 +42,12 @@ RenderDeviceMtlImpl::RenderDeviceMtlImpl(IReferenceCounters*        pRefCounters
                                          IMemoryAllocator&          RawMemAllocator,
                                          IEngineFactory*            pEngineFactory,
                                          const EngineCreateInfo&    EngineCI,
-                                         const GraphicsAdapterInfo& AdapterInfo) noexcept(false) :
-    TRenderDeviceBase{pRefCounters, RawMemAllocator, pEngineFactory, EngineCI, AdapterInfo}
+                                         const GraphicsAdapterInfo& AdapterInfo,
+                                         size_t                     CommandQueueCount,
+                                         ICommandQueueMtl**         ppCmdQueues) noexcept(false) :
+    TRenderDeviceBase{pRefCounters, RawMemAllocator, pEngineFactory, CommandQueueCount, ppCmdQueues, EngineCI, AdapterInfo}
 {
+    m_DeviceInfo.Type = RENDER_DEVICE_TYPE_METAL;
     m_MtlDevice = MTLCreateSystemDefaultDevice();
 }
 
@@ -60,6 +63,7 @@ RenderDeviceMtlImpl::~RenderDeviceMtlImpl()
 void RenderDeviceMtlImpl::CreateGraphicsPipelineState(const GraphicsPipelineStateCreateInfo& PSOCreateInfo,
                                                       IPipelineState**                       ppPipelineState)
 {
+    printf("Metal: CreateGraphicsPipelineState called for PSO: %s\n", PSOCreateInfo.PSODesc.Name ? PSOCreateInfo.PSODesc.Name : "unnamed");
     CreatePipelineStateImpl(ppPipelineState, PSOCreateInfo);
 }
 
@@ -80,7 +84,18 @@ void RenderDeviceMtlImpl::CreateShader(const ShaderCreateInfo& ShaderCreateInfo,
                                        IShader**               ppShader,
                                        IDataBlob**             ppCompilerOutput)
 {
-    CreateShaderImpl(ppShader, ShaderCreateInfo, ppCompilerOutput);
+    printf("RenderDeviceMtlImpl::CreateShader called for: %s\n", ShaderCreateInfo.Desc.Name);
+    printf("  Source: %p, Length: %zu\n", ShaderCreateInfo.Source, ShaderCreateInfo.SourceLength);
+    printf("  EntryPoint: %s\n", ShaderCreateInfo.EntryPoint ? ShaderCreateInfo.EntryPoint : "null");
+    
+    const ShaderMtlImpl::CreateInfo MtlShaderCI{
+        GetDeviceInfo(),
+        GetAdapterInfo(),
+        ppCompilerOutput,
+        nullptr, // pAsyncTaskProcessor
+        nullptr  // PreprocessMslSource
+    };
+    CreateShaderImpl(ppShader, ShaderCreateInfo, MtlShaderCI);
 }
 
 void RenderDeviceMtlImpl::CreateTexture(const TextureDesc& TexDesc,
@@ -117,8 +132,85 @@ void RenderDeviceMtlImpl::CreateTextureFromMtlResource(id<MTLTexture> mtlTexture
                                                        RESOURCE_STATE InitialState,
                                                        ITexture**     ppTexture)
 {
-    TextureDesc TexDesc;
+    // Build a proper TextureDesc from the supplied Metal texture so validation succeeds.
+    TextureDesc TexDesc{};
     TexDesc.Name = "Texture from Metal resource";
+
+    if (mtlTexture == nil)
+    {
+        LOG_ERROR_MESSAGE("CreateTextureFromMtlResource called with nil mtlTexture");
+        *ppTexture = nullptr;
+        return;
+    }
+
+    // Map Metal texture type to Diligent resource dimension.
+    switch ([mtlTexture textureType])
+    {
+        case MTLTextureType2D:
+        case MTLTextureType2DMultisample:
+            TexDesc.Type = RESOURCE_DIM_TEX_2D; break;
+        case MTLTextureTypeCube:
+            TexDesc.Type = RESOURCE_DIM_TEX_CUBE; break;
+        case MTLTextureType3D:
+            TexDesc.Type = RESOURCE_DIM_TEX_3D; break;
+        case MTLTextureType2DArray:
+        case MTLTextureTypeCubeArray:
+            TexDesc.Type = RESOURCE_DIM_TEX_2D; break; // treat arrays as 2D for now; ArraySize will reflect elements
+        default:
+            TexDesc.Type = RESOURCE_DIM_TEX_2D; break;
+    }
+
+    TexDesc.Width      = static_cast<Uint32>([mtlTexture width]);
+    TexDesc.Height     = static_cast<Uint32>([mtlTexture height]);
+    TexDesc.Depth      = static_cast<Uint32>([mtlTexture depth]);
+    TexDesc.ArraySize  = static_cast<Uint32>([mtlTexture arrayLength]);
+    TexDesc.MipLevels  = static_cast<Uint32>([mtlTexture mipmapLevelCount]);
+    TexDesc.SampleCount= static_cast<Uint8>([mtlTexture sampleCount]);
+
+    // Reverse map pixel format (subset of common formats used by swap chain/back buffers).
+    auto MapFormat = [](MTLPixelFormat fmt) -> TEXTURE_FORMAT {
+        switch (fmt)
+        {
+            case MTLPixelFormatBGRA8Unorm:         return TEX_FORMAT_BGRA8_UNORM;
+            case MTLPixelFormatBGRA8Unorm_sRGB:    return TEX_FORMAT_BGRA8_UNORM_SRGB;
+            case MTLPixelFormatRGBA8Unorm:         return TEX_FORMAT_RGBA8_UNORM;
+            case MTLPixelFormatRGBA8Unorm_sRGB:    return TEX_FORMAT_RGBA8_UNORM_SRGB;
+            case MTLPixelFormatDepth32Float:       return TEX_FORMAT_D32_FLOAT;
+            case MTLPixelFormatDepth24Unorm_Stencil8: return TEX_FORMAT_D24_UNORM_S8_UINT;
+            case MTLPixelFormatDepth32Float_Stencil8: return TEX_FORMAT_D32_FLOAT_S8X24_UINT;
+            default: return TEX_FORMAT_UNKNOWN;
+        }
+    };
+    TexDesc.Format = MapFormat([mtlTexture pixelFormat]);
+
+    // Derive bind flags. Back buffers are render targets; if depth format, mark depth-stencil.
+    if (TexDesc.Format == TEX_FORMAT_D32_FLOAT || TexDesc.Format == TEX_FORMAT_D24_UNORM_S8_UINT || TexDesc.Format == TEX_FORMAT_D32_FLOAT_S8X24_UINT)
+        TexDesc.BindFlags = BIND_DEPTH_STENCIL;
+    else
+        TexDesc.BindFlags = BIND_RENDER_TARGET;
+    // Also allow shader resource usage for potential sampling of resolve/capture.
+    if (TexDesc.Format != TEX_FORMAT_UNKNOWN)
+        TexDesc.BindFlags |= BIND_SHADER_RESOURCE;
+
+    TexDesc.Usage = USAGE_DEFAULT;
+    TexDesc.ClearValue.Format = TexDesc.Format; // set format for possible clear validation
+
+    if (TexDesc.Format == TEX_FORMAT_UNKNOWN)
+    {
+        LOG_WARNING_MESSAGE("CreateTextureFromMtlResource: Unmapped MTLPixelFormat=", static_cast<int>([mtlTexture pixelFormat]), 
+                            ", defaulting to BGRA8_UNORM");
+        TexDesc.Format    = TEX_FORMAT_BGRA8_UNORM;
+        TexDesc.BindFlags = BIND_RENDER_TARGET | BIND_SHADER_RESOURCE;
+    }
+
+    // Sanity fallback: Depth must be at least 1 for 2D.
+    if (TexDesc.Type == RESOURCE_DIM_TEX_2D && TexDesc.Depth == 0)
+        TexDesc.Depth = 1;
+    if (TexDesc.ArraySize == 0)
+        TexDesc.ArraySize = 1;
+    if (TexDesc.MipLevels == 0)
+        TexDesc.MipLevels = 1;
+
     CreateTextureImpl(ppTexture, TexDesc, InitialState, mtlTexture);
 }
 
@@ -185,6 +277,14 @@ void RenderDeviceMtlImpl::CreatePipelineResourceSignature(const PipelineResource
     CreatePipelineResourceSignatureImpl(ppSignature, Desc, SHADER_TYPE_UNKNOWN, false);
 }
 
+void RenderDeviceMtlImpl::CreatePipelineResourceSignature(const PipelineResourceSignatureDesc& Desc,
+                                                          IPipelineResourceSignature**         ppSignature,
+                                                          SHADER_TYPE                          ShaderStages,
+                                                          bool                                 IsDeviceInternal)
+{
+    CreatePipelineResourceSignatureImpl(ppSignature, Desc, ShaderStages, IsDeviceInternal);
+}
+
 void RenderDeviceMtlImpl::CreateDeviceMemory(const DeviceMemoryCreateInfo& CreateInfo,
                                              IDeviceMemory**               ppMemory)
 {
@@ -208,8 +308,9 @@ SparseTextureFormatInfo RenderDeviceMtlImpl::GetSparseTextureFormatInfo(TEXTURE_
                                                                         RESOURCE_DIMENSION Dimension,
                                                                         Uint32             SampleCount) const
 {
-    // Sparse textures not yet supported in Metal backend
-    return TRenderDeviceBase::GetSparseTextureFormatInfo(TexFormat, Dimension, SampleCount);
+    // Sparse textures not yet supported in Metal backend - return empty info
+    SparseTextureFormatInfo SparseTexInfo{};
+    return SparseTexInfo;
 }
 
 void RenderDeviceMtlImpl::ReleaseStaleResources(bool ForceRelease)

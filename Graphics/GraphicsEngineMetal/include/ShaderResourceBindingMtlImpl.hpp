@@ -27,22 +27,29 @@
 #pragma once
 
 /// \file
-/// Declaration of Diligent::DeviceObjectArchiveMtlImpl class
+/// Declaration of Diligent::ShaderResourceBindingMtlImpl class
 
-#include "../../GraphicsEngine/include/DeviceObjectArchive.hpp"
+#include "ShaderResourceBindingBase.hpp"
 #include "EngineMtlImplTraits.hpp"
 
 namespace Diligent
 {
 
-/// Device object archive implementation in Metal backend.
-class DeviceObjectArchiveMtlImpl
+class ShaderResourceBindingMtlImpl final : public ShaderResourceBindingBase<EngineMtlImplTraits>
 {
 public:
-    DeviceObjectArchiveMtlImpl()  = default;
-    ~DeviceObjectArchiveMtlImpl() = default;
+    using TShaderResourceBindingBase = ShaderResourceBindingBase<EngineMtlImplTraits>;
 
-    // Placeholder for Metal-specific archive functionality
+    ShaderResourceBindingMtlImpl(IReferenceCounters*     pRefCounters,
+                                 PipelineResourceSignatureMtlImpl* pPRS,
+                                 bool                           IsInternal = false) :
+        TShaderResourceBindingBase{pRefCounters, pPRS}
+    {
+    }
+
+    ~ShaderResourceBindingMtlImpl() = default;
+
+    IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_ShaderResourceBindingMtl, TShaderResourceBindingBase)
 };
 
 } // namespace Diligent

@@ -24,25 +24,56 @@
  *  of the possibility of such damages.
  */
 
+/// \file
+/// Minimal command queue implementation for Metal backend
+
 #pragma once
 
-/// \file
-/// Declaration of Diligent::DeviceObjectArchiveMtlImpl class
-
-#include "../../GraphicsEngine/include/DeviceObjectArchive.hpp"
-#include "EngineMtlImplTraits.hpp"
+#include "CommandQueueMtl.h"
+#include "ObjectBase.hpp"
 
 namespace Diligent
 {
 
-/// Device object archive implementation in Metal backend.
-class DeviceObjectArchiveMtlImpl
+/// Minimal command queue implementation for Metal backend
+/// This is a placeholder implementation used during device creation
+class CommandQueueMtlStub final : public ObjectBase<ICommandQueueMtl>
 {
 public:
-    DeviceObjectArchiveMtlImpl()  = default;
-    ~DeviceObjectArchiveMtlImpl() = default;
+    using TBase = ObjectBase<ICommandQueueMtl>;
 
-    // Placeholder for Metal-specific archive functionality
+    CommandQueueMtlStub(IReferenceCounters* pRefCounters) :
+        TBase{pRefCounters}
+    {}
+
+    // ICommandQueue interface
+    IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_CommandQueueMtl, TBase)
+
+    virtual Uint64 DILIGENT_CALL_TYPE GetNextFenceValue() const override final
+    {
+        return 0;
+    }
+
+    virtual Uint64 DILIGENT_CALL_TYPE GetCompletedFenceValue() override final
+    {
+        return 0;
+    }
+
+    virtual Uint64 DILIGENT_CALL_TYPE WaitForIdle() override final
+    {
+        return 0;
+    }
+
+    // ICommandQueueMtl interface  
+    virtual id<MTLCommandQueue> DILIGENT_CALL_TYPE GetMtlCommandQueue() const override final
+    {
+        return nil;
+    }
+
+    virtual Uint64 DILIGENT_CALL_TYPE Submit(id<MTLCommandBuffer> mtlCommandBuffer) override final
+    {
+        return 0;
+    }
 };
 
 } // namespace Diligent

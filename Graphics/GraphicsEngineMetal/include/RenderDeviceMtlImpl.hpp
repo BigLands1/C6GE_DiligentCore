@@ -30,6 +30,7 @@
 /// Declaration of Diligent::RenderDeviceMtlImpl class
 
 #include "EngineMtlImplTraits.hpp"
+#include "DeviceMemoryMtlImpl.hpp" // Required by RenderDeviceBase
 #include "RenderDeviceBase.hpp"
 #include "RenderDeviceNextGenBase.hpp"
 
@@ -49,7 +50,9 @@ public:
                         IMemoryAllocator&          RawMemAllocator,
                         IEngineFactory*            pEngineFactory,
                         const EngineCreateInfo&    EngineCI,
-                        const GraphicsAdapterInfo& AdapterInfo) noexcept(false);
+                        const GraphicsAdapterInfo& AdapterInfo,
+                        size_t                     CommandQueueCount,
+                        ICommandQueueMtl**         ppCmdQueues) noexcept(false);
     
     ~RenderDeviceMtlImpl();
 
@@ -136,6 +139,11 @@ public:
     /// Implementation of IRenderDevice::CreatePipelineResourceSignature() in Metal backend.
     virtual void DILIGENT_CALL_TYPE CreatePipelineResourceSignature(const PipelineResourceSignatureDesc& Desc,
                                                                     IPipelineResourceSignature**         ppSignature) override final;
+
+    void CreatePipelineResourceSignature(const PipelineResourceSignatureDesc& Desc,
+                                         IPipelineResourceSignature**         ppSignature,
+                                         SHADER_TYPE                          ShaderStages,
+                                         bool                                 IsDeviceInternal);
 
     /// Implementation of IRenderDevice::CreateDeviceMemory() in Metal backend.
     virtual void DILIGENT_CALL_TYPE CreateDeviceMemory(const DeviceMemoryCreateInfo& CreateInfo,

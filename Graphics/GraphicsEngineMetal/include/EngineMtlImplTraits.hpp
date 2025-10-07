@@ -49,14 +49,18 @@
 #include "DeviceContextMtl.h"
 #include "Framebuffer.h"
 #include "ShaderBindingTable.h"
+#include "PipelineResourceAttribsMtl.hpp"
+#include "ImmutableSamplerAttribsMtl.hpp"
 
 namespace Diligent
 {
 
+class ShaderResourceCacheMtl;
+class ShaderResourceBindingMtlImpl;
+class ShaderVariableManagerMtl;
 class RenderDeviceMtlImpl;
 class DeviceContextMtlImpl;
 class PipelineStateMtlImpl;
-class ShaderResourceBindingMtlImpl;
 class BufferMtlImpl;
 class BufferViewMtlImpl;
 class TextureMtlImpl;
@@ -75,6 +79,10 @@ class DeviceMemoryMtlImpl;
 class PipelineStateCacheMtlImpl;
 
 class FixedBlockMemoryAllocator;
+
+struct ImmutableSamplerAttribsMtl;
+
+struct PipelineResourceSignatureInternalDataMtl;
 
 struct EngineMtlImplTraits
 {
@@ -121,9 +129,53 @@ struct EngineMtlImplTraits
     using PipelineResourceSignatureImplType = PipelineResourceSignatureMtlImpl;
     using DeviceMemoryImplType              = DeviceMemoryMtlImpl;
     using PipelineStateCacheImplType        = PipelineStateCacheMtlImpl;
+    using ShaderResourceCacheImplType       = ShaderResourceCacheMtl;
+    using ShaderVariableManagerImplType     = ShaderVariableManagerMtl;
+
+    using PipelineResourceAttribsType               = PipelineResourceAttribsMtl;
+    using ImmutableSamplerAttribsType               = ImmutableSamplerAttribsMtl;
+    using PipelineResourceSignatureInternalDataType = PipelineResourceSignatureInternalDataMtl;
 
     using BuffViewObjAllocatorType = FixedBlockMemoryAllocator;
     using TexViewObjAllocatorType  = FixedBlockMemoryAllocator;
 };
 
 } // namespace Diligent
+
+#include "PipelineResourceSignatureBase.hpp"
+
+namespace Diligent
+{
+
+struct PipelineResourceSignatureInternalDataMtl : PipelineResourceSignatureInternalData<PipelineResourceAttribsMtl, ImmutableSamplerAttribsMtl>
+{
+    PipelineResourceSignatureInternalDataMtl() noexcept
+    {}
+
+    explicit PipelineResourceSignatureInternalDataMtl(const PipelineResourceSignatureInternalData& InternalData) noexcept :
+        PipelineResourceSignatureInternalData{InternalData}
+    {}
+};
+
+} // namespace Diligent
+
+#include "RenderDeviceMtlImpl.hpp"
+#include "DeviceContextMtlImpl.hpp"
+#include "PipelineResourceSignatureMtlImpl.hpp"
+#include "PipelineStateCacheMtlImpl.hpp"
+#include "BufferMtlImpl.hpp"
+#include "BufferViewMtlImpl.hpp"
+#include "TextureMtlImpl.hpp"
+#include "TextureViewMtlImpl.hpp"
+#include "ShaderMtlImpl.hpp"
+#include "SamplerMtlImpl.hpp"
+#include "FenceMtlImpl.hpp"
+#include "QueryMtlImpl.hpp"
+#include "RenderPassMtlImpl.hpp"
+#include "FramebufferMtlImpl.hpp"
+#include "BottomLevelASMtlImpl.hpp"
+#include "TopLevelASMtlImpl.hpp"
+#include "ShaderBindingTableMtlImpl.hpp"
+#include "ShaderResourceCacheMtl.hpp"
+#include "ShaderVariableManagerMtl.hpp"
+#include "ShaderResourceBindingMtlImpl.hpp"

@@ -27,22 +27,41 @@
 #pragma once
 
 /// \file
-/// Declaration of Diligent::DeviceObjectArchiveMtlImpl class
+/// Declaration of Diligent::ShaderResourceCacheMtl class
 
-#include "../../GraphicsEngine/include/DeviceObjectArchive.hpp"
-#include "EngineMtlImplTraits.hpp"
+#include "ShaderResourceCacheCommon.hpp"
 
 namespace Diligent
 {
 
-/// Device object archive implementation in Metal backend.
-class DeviceObjectArchiveMtlImpl
+class ShaderResourceCacheMtl : public ShaderResourceCacheBase
 {
 public:
-    DeviceObjectArchiveMtlImpl()  = default;
-    ~DeviceObjectArchiveMtlImpl() = default;
+    explicit ShaderResourceCacheMtl(ResourceCacheContentType ContentType) noexcept :
+        m_ContentType{static_cast<Uint32>(ContentType)}
+    {
+        VERIFY_EXPR(GetContentType() == ContentType);
+    }
 
-    // Placeholder for Metal-specific archive functionality
+    // clang-format off
+    ShaderResourceCacheMtl             (const ShaderResourceCacheMtl&) = delete;
+    ShaderResourceCacheMtl             (ShaderResourceCacheMtl&&)      = delete;
+    ShaderResourceCacheMtl& operator = (const ShaderResourceCacheMtl&) = delete;
+    ShaderResourceCacheMtl& operator = (ShaderResourceCacheMtl&&)      = delete;
+    // clang-format on
+
+    ~ShaderResourceCacheMtl() = default;
+
+    bool HasDynamicResources() const
+    {
+        return false;
+    }
+
+    ResourceCacheContentType GetContentType() const { return static_cast<ResourceCacheContentType>(m_ContentType); }
+
+private:
+    // Indicates what types of resources are stored in the cache (static/mutable or dynamic)
+    const Uint32 m_ContentType : 1;
 };
 
 } // namespace Diligent

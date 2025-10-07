@@ -24,25 +24,28 @@
  *  of the possibility of such damages.
  */
 
-#pragma once
-
 /// \file
-/// Declaration of Diligent::DeviceObjectArchiveMtlImpl class
+/// Metal-specific pipeline state validation
 
-#include "../../GraphicsEngine/include/DeviceObjectArchive.hpp"
-#include "EngineMtlImplTraits.hpp"
+#include "PipelineStateBase.hpp"
+#include "GraphicsTypesX.hpp"
 
 namespace Diligent
 {
 
-/// Device object archive implementation in Metal backend.
-class DeviceObjectArchiveMtlImpl
+// Template specialization for Metal backend pipeline state validation
+template <>
+void ValidatePSOCreateInfo<PipelineStateCreateInfo>(const IRenderDevice*           pDevice,
+                                                   const PipelineStateCreateInfo& CreateInfo) noexcept(false)
 {
-public:
-    DeviceObjectArchiveMtlImpl()  = default;
-    ~DeviceObjectArchiveMtlImpl() = default;
-
-    // Placeholder for Metal-specific archive functionality
-};
+    // Basic validation for Metal pipeline states
+    if (CreateInfo.PSODesc.Name == nullptr || CreateInfo.PSODesc.Name[0] == '\0')
+    {
+        LOG_WARNING_MESSAGE("Pipeline state name is not specified");
+    }
+    
+    // Metal-specific validation can be added here
+    // For now, just perform basic checks
+}
 
 } // namespace Diligent
