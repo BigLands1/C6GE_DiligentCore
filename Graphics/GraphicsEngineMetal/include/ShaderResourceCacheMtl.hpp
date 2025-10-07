@@ -27,36 +27,41 @@
 #pragma once
 
 /// \file
-/// Declaration of Diligent::BufferViewMtlImpl class
+/// Declaration of Diligent::ShaderResourceCacheMtl class
 
-#include "EngineMtlImplTraits.hpp"
-#include "BufferViewBase.hpp"
-
-#import <Metal/Metal.h>
+#include "ShaderResourceCacheCommon.hpp"
 
 namespace Diligent
 {
 
-/// Buffer view implementation in Metal backend.
-class BufferViewMtlImpl final : public BufferViewBase<EngineMtlImplTraits>
+class ShaderResourceCacheMtl : public ShaderResourceCacheBase
 {
 public:
-    using TBufferViewBase = BufferViewBase<EngineMtlImplTraits>;
+    explicit ShaderResourceCacheMtl(ResourceCacheContentType ContentType) noexcept :
+        m_ContentType{static_cast<Uint32>(ContentType)}
+    {
+        VERIFY_EXPR(GetContentType() == ContentType);
+    }
 
-    BufferViewMtlImpl(IReferenceCounters*   pRefCounters,
-                      RenderDeviceMtlImpl*  pDevice,
-                      const BufferViewDesc& ViewDesc,
-                      IBuffer*              pBuffer,
-                      bool                  bIsDefaultView);
-    ~BufferViewMtlImpl();
+    // clang-format off
+    ShaderResourceCacheMtl             (const ShaderResourceCacheMtl&) = delete;
+    ShaderResourceCacheMtl             (ShaderResourceCacheMtl&&)      = delete;
+    ShaderResourceCacheMtl& operator = (const ShaderResourceCacheMtl&) = delete;
+    ShaderResourceCacheMtl& operator = (ShaderResourceCacheMtl&&)      = delete;
+    // clang-format on
 
-    IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_BufferViewMtl, TBufferViewBase)
+    ~ShaderResourceCacheMtl() = default;
 
-    /// Implementation of IBufferViewMtl::GetMtlTextureView().
-    virtual id<MTLTexture> DILIGENT_CALL_TYPE GetMtlTextureView() const override final;
+    bool HasDynamicResources() const
+    {
+        return false;
+    }
 
-protected:
-    id<MTLTexture> m_MtlTextureView = nil;
+    ResourceCacheContentType GetContentType() const { return static_cast<ResourceCacheContentType>(m_ContentType); }
+
+private:
+    // Indicates what types of resources are stored in the cache (static/mutable or dynamic)
+    const Uint32 m_ContentType : 1;
 };
 
 } // namespace Diligent

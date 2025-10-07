@@ -24,39 +24,28 @@
  *  of the possibility of such damages.
  */
 
-#pragma once
-
 /// \file
-/// Declaration of Diligent::BufferViewMtlImpl class
+/// Metal-specific pipeline state validation
 
-#include "EngineMtlImplTraits.hpp"
-#include "BufferViewBase.hpp"
-
-#import <Metal/Metal.h>
+#include "PipelineStateBase.hpp"
+#include "GraphicsTypesX.hpp"
 
 namespace Diligent
 {
 
-/// Buffer view implementation in Metal backend.
-class BufferViewMtlImpl final : public BufferViewBase<EngineMtlImplTraits>
+// Template specialization for Metal backend pipeline state validation
+template <>
+void ValidatePSOCreateInfo<PipelineStateCreateInfo>(const IRenderDevice*           pDevice,
+                                                   const PipelineStateCreateInfo& CreateInfo) noexcept(false)
 {
-public:
-    using TBufferViewBase = BufferViewBase<EngineMtlImplTraits>;
-
-    BufferViewMtlImpl(IReferenceCounters*   pRefCounters,
-                      RenderDeviceMtlImpl*  pDevice,
-                      const BufferViewDesc& ViewDesc,
-                      IBuffer*              pBuffer,
-                      bool                  bIsDefaultView);
-    ~BufferViewMtlImpl();
-
-    IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_BufferViewMtl, TBufferViewBase)
-
-    /// Implementation of IBufferViewMtl::GetMtlTextureView().
-    virtual id<MTLTexture> DILIGENT_CALL_TYPE GetMtlTextureView() const override final;
-
-protected:
-    id<MTLTexture> m_MtlTextureView = nil;
-};
+    // Basic validation for Metal pipeline states
+    if (CreateInfo.PSODesc.Name == nullptr || CreateInfo.PSODesc.Name[0] == '\0')
+    {
+        LOG_WARNING_MESSAGE("Pipeline state name is not specified");
+    }
+    
+    // Metal-specific validation can be added here
+    // For now, just perform basic checks
+}
 
 } // namespace Diligent

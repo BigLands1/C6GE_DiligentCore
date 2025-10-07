@@ -29,7 +29,7 @@
 /// \file
 /// Declaration of Diligent::DeviceObjectArchiveMtlImpl class
 
-#include "DeviceObjectArchive.h"
+#include "../../GraphicsEngine/include/DeviceObjectArchive.hpp"
 #include "EngineMtlImplTraits.hpp"
 
 namespace Diligent

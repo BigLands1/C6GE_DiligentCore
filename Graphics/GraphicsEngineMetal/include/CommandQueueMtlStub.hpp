@@ -24,39 +24,56 @@
  *  of the possibility of such damages.
  */
 
+/// \file
+/// Minimal command queue implementation for Metal backend
+
 #pragma once
 
-/// \file
-/// Declaration of Diligent::BufferViewMtlImpl class
-
-#include "EngineMtlImplTraits.hpp"
-#include "BufferViewBase.hpp"
-
-#import <Metal/Metal.h>
+#include "CommandQueueMtl.h"
+#include "ObjectBase.hpp"
 
 namespace Diligent
 {
 
-/// Buffer view implementation in Metal backend.
-class BufferViewMtlImpl final : public BufferViewBase<EngineMtlImplTraits>
+/// Minimal command queue implementation for Metal backend
+/// This is a placeholder implementation used during device creation
+class CommandQueueMtlStub final : public ObjectBase<ICommandQueueMtl>
 {
 public:
-    using TBufferViewBase = BufferViewBase<EngineMtlImplTraits>;
+    using TBase = ObjectBase<ICommandQueueMtl>;
 
-    BufferViewMtlImpl(IReferenceCounters*   pRefCounters,
-                      RenderDeviceMtlImpl*  pDevice,
-                      const BufferViewDesc& ViewDesc,
-                      IBuffer*              pBuffer,
-                      bool                  bIsDefaultView);
-    ~BufferViewMtlImpl();
+    CommandQueueMtlStub(IReferenceCounters* pRefCounters) :
+        TBase{pRefCounters}
+    {}
 
-    IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_BufferViewMtl, TBufferViewBase)
+    // ICommandQueue interface
+    IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_CommandQueueMtl, TBase)
 
-    /// Implementation of IBufferViewMtl::GetMtlTextureView().
-    virtual id<MTLTexture> DILIGENT_CALL_TYPE GetMtlTextureView() const override final;
+    virtual Uint64 DILIGENT_CALL_TYPE GetNextFenceValue() const override final
+    {
+        return 0;
+    }
 
-protected:
-    id<MTLTexture> m_MtlTextureView = nil;
+    virtual Uint64 DILIGENT_CALL_TYPE GetCompletedFenceValue() override final
+    {
+        return 0;
+    }
+
+    virtual Uint64 DILIGENT_CALL_TYPE WaitForIdle() override final
+    {
+        return 0;
+    }
+
+    // ICommandQueueMtl interface  
+    virtual id<MTLCommandQueue> DILIGENT_CALL_TYPE GetMtlCommandQueue() const override final
+    {
+        return nil;
+    }
+
+    virtual Uint64 DILIGENT_CALL_TYPE Submit(id<MTLCommandBuffer> mtlCommandBuffer) override final
+    {
+        return 0;
+    }
 };
 
 } // namespace Diligent

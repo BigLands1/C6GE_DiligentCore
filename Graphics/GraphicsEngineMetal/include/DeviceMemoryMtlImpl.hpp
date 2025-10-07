@@ -27,36 +27,45 @@
 #pragma once
 
 /// \file
-/// Declaration of Diligent::BufferViewMtlImpl class
+/// Declaration of Diligent::DeviceMemoryMtlImpl class
 
 #include "EngineMtlImplTraits.hpp"
-#include "BufferViewBase.hpp"
-
-#import <Metal/Metal.h>
+#include "DeviceMemoryBase.hpp"
 
 namespace Diligent
 {
 
-/// Buffer view implementation in Metal backend.
-class BufferViewMtlImpl final : public BufferViewBase<EngineMtlImplTraits>
+/// Device memory object implementation in Metal backend.
+class DeviceMemoryMtlImpl final : public DeviceMemoryBase<EngineMtlImplTraits>
 {
 public:
-    using TBufferViewBase = BufferViewBase<EngineMtlImplTraits>;
+    using TDeviceMemoryBase = DeviceMemoryBase<EngineMtlImplTraits>;
 
-    BufferViewMtlImpl(IReferenceCounters*   pRefCounters,
-                      RenderDeviceMtlImpl*  pDevice,
-                      const BufferViewDesc& ViewDesc,
-                      IBuffer*              pBuffer,
-                      bool                  bIsDefaultView);
-    ~BufferViewMtlImpl();
+    static constexpr INTERFACE_ID IID_InternalImpl =
+        {0x8b2c6f8a, 0x4c5d, 0x4e8f, {0x9b, 0x1a, 0x2c, 0x3d, 0x5e, 0x7f, 0x8a, 0x1c}};
 
-    IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_BufferViewMtl, TBufferViewBase)
+    DeviceMemoryMtlImpl(IReferenceCounters*           pRefCounters,
+                        RenderDeviceMtlImpl*          pDevice,
+                        const DeviceMemoryCreateInfo& MemCI);
 
-    /// Implementation of IBufferViewMtl::GetMtlTextureView().
-    virtual id<MTLTexture> DILIGENT_CALL_TYPE GetMtlTextureView() const override final;
+    ~DeviceMemoryMtlImpl();
 
-protected:
-    id<MTLTexture> m_MtlTextureView = nil;
+    virtual void DILIGENT_CALL_TYPE QueryInterface(const INTERFACE_ID& IID, IObject** ppInterface) override final;
+
+    /// Implementation of IDeviceMemory::Resize().
+    virtual Bool DILIGENT_CALL_TYPE Resize(Uint64 NewSize) override final;
+
+    /// Implementation of IDeviceMemory::GetCapacity().
+    virtual Uint64 DILIGENT_CALL_TYPE GetCapacity() const override final;
+
+    /// Implementation of IDeviceMemory::IsCompatible().
+    virtual Bool DILIGENT_CALL_TYPE IsCompatible(IDeviceObject* pResource) const override final;
+
+    /// Implementation of IDeviceMemoryMtl::GetMtlResource().
+    virtual id<MTLHeap> DILIGENT_CALL_TYPE GetMtlResource() const override final;
+
+private:
+    id<MTLHeap> m_MtlHeap = nullptr;
 };
 
 } // namespace Diligent

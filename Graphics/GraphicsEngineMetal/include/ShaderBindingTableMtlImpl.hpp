@@ -30,22 +30,107 @@
 /// Declaration of Diligent::ShaderBindingTableMtlImpl class
 
 #include "EngineMtlImplTraits.hpp"
-#include "ShaderBindingTableBase.hpp"
+#include "../../../Primitives/interface/Object.h"
+#include "ShaderBindingTable.h"
 
 namespace Diligent
 {
 
 /// Shader binding table implementation in Metal backend.
-class ShaderBindingTableMtlImpl final : public ShaderBindingTableBase<EngineMtlImplTraits>
+class ShaderBindingTableMtlImpl final : public ObjectBase<IShaderBindingTable>
 {
 public:
-    using TShaderBindingTableBase = ShaderBindingTableBase<EngineMtlImplTraits>;
+    using TBase = ObjectBase<IShaderBindingTable>;
 
     ShaderBindingTableMtlImpl(IReferenceCounters*           pRefCounters,
                               RenderDeviceMtlImpl*          pDevice,
                               const ShaderBindingTableDesc& Desc,
                               bool                          bIsDeviceInternal = false);
     ~ShaderBindingTableMtlImpl();
+
+    IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_ShaderBindingTable, TBase)
+
+    /// Implementation of IDeviceObject::GetUniqueID().
+    virtual Int32 DILIGENT_CALL_TYPE GetUniqueID() const override final
+    {
+        return m_UniqueID;
+    }
+
+    /// Implementation of IDeviceObject::SetUserData().
+    virtual void DILIGENT_CALL_TYPE SetUserData(IObject* pUserData) override final
+    {
+        m_pUserData = pUserData;
+    }
+
+    /// Implementation of IDeviceObject::GetUserData().
+    virtual IObject* DILIGENT_CALL_TYPE GetUserData() const override final
+    {
+        return m_pUserData;
+    }
+
+    /// Implementation of IShaderBindingTable::GetDesc().
+    virtual const ShaderBindingTableDesc& DILIGENT_CALL_TYPE GetDesc() const override final;
+
+    /// Implementation of IShaderBindingTable::Verify().
+    virtual Bool DILIGENT_CALL_TYPE Verify(VERIFY_SBT_FLAGS Flags) const override final;
+
+    /// Implementation of IShaderBindingTable::Reset().
+    virtual void DILIGENT_CALL_TYPE Reset(IPipelineState* pPSO) override final;
+
+    /// Implementation of IShaderBindingTable::ResetHitGroups().
+    virtual void DILIGENT_CALL_TYPE ResetHitGroups() override final;
+
+    /// Implementation of IShaderBindingTable::BindRayGenShader().
+    virtual void DILIGENT_CALL_TYPE BindRayGenShader(const Char* pShaderGroupName,
+                                                     const void* pData,
+                                                     Uint32      DataSize) override final;
+
+    /// Implementation of IShaderBindingTable::BindMissShader().
+    virtual void DILIGENT_CALL_TYPE BindMissShader(const Char* pShaderGroupName,
+                                                   Uint32      MissIndex,
+                                                   const void* pData,
+                                                   Uint32      DataSize) override final;
+
+    /// Implementation of IShaderBindingTable::BindHitGroupForGeometry().
+    virtual void DILIGENT_CALL_TYPE BindHitGroupForGeometry(ITopLevelAS* pTLAS,
+                                                            const Char*  pInstanceName,
+                                                            const Char*  pGeometryName,
+                                                            Uint32       RayOffsetInHitGroupIndex,
+                                                            const Char*  pShaderGroupName,
+                                                            const void*  pData,
+                                                            Uint32       DataSize) override final;
+
+    /// Implementation of IShaderBindingTable::BindHitGroupByIndex().
+    virtual void DILIGENT_CALL_TYPE BindHitGroupByIndex(Uint32      BindingIndex,
+                                                        const Char* pShaderGroupName,
+                                                        const void* pData,
+                                                        Uint32      DataSize) override final;
+
+    /// Implementation of IShaderBindingTable::BindHitGroupForInstance().
+    virtual void DILIGENT_CALL_TYPE BindHitGroupForInstance(ITopLevelAS* pTLAS,
+                                                            const Char*  pInstanceName,
+                                                            Uint32       RayOffsetInHitGroupIndex,
+                                                            const Char*  pShaderGroupName,
+                                                            const void*  pData,
+                                                            Uint32       DataSize) override final;
+
+    /// Implementation of IShaderBindingTable::BindHitGroupForTLAS().
+    virtual void DILIGENT_CALL_TYPE BindHitGroupForTLAS(ITopLevelAS* pTLAS,
+                                                        Uint32       RayOffsetInHitGroupIndex,
+                                                        const Char*  pShaderGroupName,
+                                                        const void*  pData,
+                                                        Uint32       DataSize) override final;
+
+    /// Implementation of IShaderBindingTable::BindCallableShader().
+    virtual void DILIGENT_CALL_TYPE BindCallableShader(const Char* pShaderGroupName,
+                                                       Uint32      CallableIndex,
+                                                       const void* pData,
+                                                       Uint32      DataSize) override final;
+
+private:
+    ShaderBindingTableDesc m_Desc;
+    const Int32            m_UniqueID;
+    RefCntAutoPtr<IObject> m_pUserData;
 };
 
 } // namespace Diligent

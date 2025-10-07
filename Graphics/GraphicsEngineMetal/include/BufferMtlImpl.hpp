@@ -32,6 +32,8 @@
 #include "EngineMtlImplTraits.hpp"
 #include "BufferBase.hpp"
 
+#import <Metal/Metal.h>
+
 namespace Diligent
 {
 
@@ -63,6 +65,9 @@ public:
 
     /// Implementation of IBuffer::GetNativeHandle() in Metal backend.
     virtual Uint64 DILIGENT_CALL_TYPE GetNativeHandle() override final;
+
+    /// Implementation of IBuffer::GetSparseProperties().
+    virtual SparseBufferProperties DILIGENT_CALL_TYPE GetSparseProperties() const override final;
 
 protected:
     virtual void CreateViewInternal(const struct BufferViewDesc& ViewDesc, IBufferView** ppView, bool bIsDefaultView) override final;

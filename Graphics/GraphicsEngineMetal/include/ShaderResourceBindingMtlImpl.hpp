@@ -27,36 +27,29 @@
 #pragma once
 
 /// \file
-/// Declaration of Diligent::BufferViewMtlImpl class
+/// Declaration of Diligent::ShaderResourceBindingMtlImpl class
 
+#include "ShaderResourceBindingBase.hpp"
 #include "EngineMtlImplTraits.hpp"
-#include "BufferViewBase.hpp"
-
-#import <Metal/Metal.h>
 
 namespace Diligent
 {
 
-/// Buffer view implementation in Metal backend.
-class BufferViewMtlImpl final : public BufferViewBase<EngineMtlImplTraits>
+class ShaderResourceBindingMtlImpl final : public ShaderResourceBindingBase<EngineMtlImplTraits>
 {
 public:
-    using TBufferViewBase = BufferViewBase<EngineMtlImplTraits>;
+    using TShaderResourceBindingBase = ShaderResourceBindingBase<EngineMtlImplTraits>;
 
-    BufferViewMtlImpl(IReferenceCounters*   pRefCounters,
-                      RenderDeviceMtlImpl*  pDevice,
-                      const BufferViewDesc& ViewDesc,
-                      IBuffer*              pBuffer,
-                      bool                  bIsDefaultView);
-    ~BufferViewMtlImpl();
+    ShaderResourceBindingMtlImpl(IReferenceCounters*     pRefCounters,
+                                 PipelineResourceSignatureMtlImpl* pPRS,
+                                 bool                           IsInternal = false) :
+        TShaderResourceBindingBase{pRefCounters, pPRS}
+    {
+    }
 
-    IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_BufferViewMtl, TBufferViewBase)
+    ~ShaderResourceBindingMtlImpl() = default;
 
-    /// Implementation of IBufferViewMtl::GetMtlTextureView().
-    virtual id<MTLTexture> DILIGENT_CALL_TYPE GetMtlTextureView() const override final;
-
-protected:
-    id<MTLTexture> m_MtlTextureView = nil;
+    IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_ShaderResourceBindingMtl, TShaderResourceBindingBase)
 };
 
 } // namespace Diligent

@@ -30,6 +30,7 @@
 /// Declaration of Diligent::PipelineStateMtlImpl class
 
 #include "EngineMtlImplTraits.hpp"
+#include "PipelineResourceSignatureMtlImpl.hpp" // Required by PipelineStateBase
 #include "PipelineStateBase.hpp"
 
 namespace Diligent
@@ -40,15 +41,45 @@ class PipelineStateMtlImpl final : public PipelineStateBase<EngineMtlImplTraits>
 {
 public:
     using TPipelineStateBase = PipelineStateBase<EngineMtlImplTraits>;
+    
+    struct ShaderStageInfo
+    {
+        SHADER_TYPE Type = SHADER_TYPE_UNKNOWN;
+        const ShaderMtlImpl* pShader = nullptr;
+        ShaderStageInfo() = default;
+        explicit ShaderStageInfo(const RefCntAutoPtr<ShaderMtlImpl>& Shader)
+        {
+            pShader = Shader;
+            if (pShader)
+                Type = pShader->GetDesc().ShaderType;
+        }
+        
+        friend SHADER_TYPE GetShaderStageType(const ShaderStageInfo& Stage) { return Stage.Type; }
+        friend std::vector<const ShaderMtlImpl*> GetStageShaders(const ShaderStageInfo& Stage) { return {Stage.pShader}; }
+    };
+    using TShaderStages = std::vector<ShaderStageInfo>;
 
-    PipelineStateMtlImpl(IReferenceCounters*          pRefCounters,
-                         RenderDeviceMtlImpl*         pRenderDeviceMtl,
-                         const PipelineStateCreateInfo& CreateInfo,
-                         bool                         IsDeviceInternal = false);
+    static constexpr INTERFACE_ID IID_InternalImpl =
+        {0x8b2c6f8a, 0x4c5d, 0x4e8f, {0x9b, 0x1a, 0x2c, 0x3d, 0x5e, 0x7f, 0x8a, 0x1b}};
+
+    PipelineStateMtlImpl(IReferenceCounters*                    pRefCounters,
+                         RenderDeviceMtlImpl*                   pRenderDeviceMtl,
+                         const GraphicsPipelineStateCreateInfo& CreateInfo,
+                         bool                                   IsDeviceInternal = false);
+
+    PipelineStateMtlImpl(IReferenceCounters*                   pRefCounters,
+                         RenderDeviceMtlImpl*                  pRenderDeviceMtl,
+                         const ComputePipelineStateCreateInfo& CreateInfo,
+                         bool                                  IsDeviceInternal = false);
+
+    PipelineStateMtlImpl(IReferenceCounters*                         pRefCounters,
+                         RenderDeviceMtlImpl*                        pRenderDeviceMtl,
+                         const RayTracingPipelineStateCreateInfo&    CreateInfo,
+                         bool                                        IsDeviceInternal = false);
 
     ~PipelineStateMtlImpl();
 
-    IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_PipelineStateMtl, TPipelineStateBase)
+    IMPLEMENT_QUERY_INTERFACE2_IN_PLACE(IID_PipelineStateMtl, IID_InternalImpl, TPipelineStateBase)
 
     /// Implementation of IPipelineStateMtl::GetMtlRenderPipeline().
     virtual id<MTLRenderPipelineState> DILIGENT_CALL_TYPE GetMtlRenderPipeline() const override final;
@@ -59,7 +90,28 @@ public:
     /// Implementation of IPipelineStateMtl::GetMtlDepthStencilState().
     virtual id<MTLDepthStencilState> DILIGENT_CALL_TYPE GetMtlDepthStencilState() const override final;
 
+    static PipelineResourceSignatureDescWrapper GetDefaultResourceSignatureDesc(
+        const TShaderStages&              ShaderStages,
+        const char*                       PSOName,
+        const PipelineResourceLayoutDesc& ResourceLayout,
+        Uint32                            SRBAllocationGranularity);
+
+    // TPipelineStateBase::Construct needs access to InitializePipeline
+    friend TPipelineStateBase;
+
 private:
+    // Required initialization methods called by base class Construct() - not used in our simple approach
+    void InitializePipeline(const GraphicsPipelineStateCreateInfo& CreateInfo);
+    void InitializePipeline(const ComputePipelineStateCreateInfo& CreateInfo);
+    void InitializePipeline(const RayTracingPipelineStateCreateInfo& CreateInfo);
+
+    // Releases Metal-specific objects then calls base class Destruct().
+    void Destruct();
+    
+    // Helper methods for Metal pipeline creation
+    void CreateMetalGraphicsPipeline(const GraphicsPipelineStateCreateInfo& CreateInfo);
+    void CreateMetalComputePipeline(const ComputePipelineStateCreateInfo& CreateInfo);
+    
     id<MTLRenderPipelineState>  m_MtlRenderPipeline  = nil;
     id<MTLComputePipelineState> m_MtlComputePipeline = nil;
     id<MTLDepthStencilState>    m_MtlDepthStencilState = nil;

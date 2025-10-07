@@ -133,4 +133,10 @@ DILIGENT_END_INTERFACE
 
 API_QUALIFIER IEngineFactoryMtl* DILIGENT_GLOBAL_FUNCTION(GetEngineFactoryMtl)();
 
+/// Loads the graphics engine Metal implementation and returns the engine factory.
+inline struct IEngineFactoryMtl* DILIGENT_GLOBAL_FUNCTION(LoadAndGetEngineFactoryMtl)()
+{
+    return DILIGENT_GLOBAL_FUNCTION(GetEngineFactoryMtl)();
+}
+
 DILIGENT_END_NAMESPACE // namespace Diligent

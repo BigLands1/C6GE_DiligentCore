@@ -37,14 +37,47 @@ PipelineResourceSignatureMtlImpl::PipelineResourceSignatureMtlImpl(IReferenceCou
                                                                    bool                                 IsDeviceInternal) :
     TPRSBase{pRefCounters, pRenderDeviceMtl, Desc, ShaderStages, IsDeviceInternal}
 {
-    // Metal doesn't have explicit resource signature objects
-    // Resource layout is defined by shader reflection
-    // Binding is done at draw/dispatch time via setBuffer/setTexture/setSampler
+    // Initialize base signature infrastructure (static variable managers, resource attribs, etc.).
+    try
+    {
+        Initialize(
+            GetRawAllocator(), Desc,
+            /*CreateImmutableSamplers=*/true,
+            // InitResourceLayout - no additional backend-specific work for Metal yet.
+            [this]() {},
+            // GetRequiredResourceCacheMemorySize - Metal SRB cache sizing minimal for now.
+            []() -> size_t { return 0; } // No descriptor sets; binding is direct at draw time.
+        );
+    }
+    catch (...)
+    {
+        Destruct();
+        throw;
+    }
 }
 
 PipelineResourceSignatureMtlImpl::~PipelineResourceSignatureMtlImpl()
 {
-    // No Metal-specific cleanup needed
+    Destruct();
+}
+
+void PipelineResourceSignatureMtlImpl::Destruct()
+{
+    // No Metal-specific GPU objects yet; just invoke base cleanup so that
+    // ~PipelineResourceSignatureBase() assertion is satisfied.
+    TPRSBase::Destruct();
+}
+
+void PipelineResourceSignatureMtlImpl::InitSRBResourceCache(ShaderResourceCacheMtl& ResourceCache)
+{
+    // Stub implementation - Metal handles resource binding differently
+    // No explicit descriptor sets like Vulkan
+}
+
+void PipelineResourceSignatureMtlImpl::CopyStaticResources(ShaderResourceCacheMtl& DstResourceCache) const
+{
+    // Stub implementation - Metal handles static resources through shader reflection
+    // No explicit copying needed like in D3D12/Vulkan descriptor sets
 }
 
 } // namespace Diligent

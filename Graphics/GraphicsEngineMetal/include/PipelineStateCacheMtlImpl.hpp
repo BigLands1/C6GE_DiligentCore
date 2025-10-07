@@ -27,36 +27,33 @@
 #pragma once
 
 /// \file
-/// Declaration of Diligent::BufferViewMtlImpl class
+/// Declaration of Diligent::PipelineStateCacheMtlImpl class
 
 #include "EngineMtlImplTraits.hpp"
-#include "BufferViewBase.hpp"
-
-#import <Metal/Metal.h>
+#include "PipelineStateCacheBase.hpp"
 
 namespace Diligent
 {
 
-/// Buffer view implementation in Metal backend.
-class BufferViewMtlImpl final : public BufferViewBase<EngineMtlImplTraits>
+/// Implementation of a pipeline state cache object in Metal backend.
+class PipelineStateCacheMtlImpl final : public PipelineStateCacheBase<EngineMtlImplTraits>
 {
 public:
-    using TBufferViewBase = BufferViewBase<EngineMtlImplTraits>;
+    using TPipelineStateCacheBase = PipelineStateCacheBase<EngineMtlImplTraits>;
 
-    BufferViewMtlImpl(IReferenceCounters*   pRefCounters,
-                      RenderDeviceMtlImpl*  pDevice,
-                      const BufferViewDesc& ViewDesc,
-                      IBuffer*              pBuffer,
-                      bool                  bIsDefaultView);
-    ~BufferViewMtlImpl();
+    PipelineStateCacheMtlImpl(IReferenceCounters*                  pRefCounters,
+                              RenderDeviceMtlImpl*                 pRenderDeviceMtl,
+                              const PipelineStateCacheCreateInfo&  CreateInfo);
 
-    IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_BufferViewMtl, TBufferViewBase)
+    ~PipelineStateCacheMtlImpl();
 
-    /// Implementation of IBufferViewMtl::GetMtlTextureView().
-    virtual id<MTLTexture> DILIGENT_CALL_TYPE GetMtlTextureView() const override final;
+    IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_PipelineStateCacheMtl, TPipelineStateCacheBase)
+
+    /// Implementation of IPipelineStateCache::GetData().
+    virtual void DILIGENT_CALL_TYPE GetData(IDataBlob** ppData) override final;
 
 protected:
-    id<MTLTexture> m_MtlTextureView = nil;
+    // Pipeline state cache is not implemented for Metal backend
 };
 
 } // namespace Diligent

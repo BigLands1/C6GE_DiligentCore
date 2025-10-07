@@ -7,18 +7,24 @@ set(INCLUDE
     include/BufferMtlImpl.hpp
     include/BufferViewMtlImpl.hpp
     include/DeviceContextMtlImpl.hpp
+    include/DeviceMemoryMtlImpl.hpp
     include/DeviceObjectArchiveMtlImpl.hpp
     include/EngineMtlImplTraits.hpp
     include/FenceMtlImpl.hpp
     include/FramebufferMtlImpl.hpp
     include/PipelineResourceSignatureMtlImpl.hpp
+    include/PipelineStateCacheMtlImpl.hpp
     include/PipelineStateMtlImpl.hpp
     include/QueryMtlImpl.hpp
     include/RenderDeviceMtlImpl.hpp
     include/RenderPassMtlImpl.hpp
     include/SamplerMtlImpl.hpp
+    include/SwapChainMtlImpl.hpp
     include/ShaderBindingTableMtlImpl.hpp
     include/ShaderMtlImpl.hpp
+    include/ShaderResourceBindingMtlImpl.hpp
+    include/ShaderResourceCacheMtl.hpp
+    include/ShaderVariableManagerMtl.hpp
     include/TextureMtlImpl.hpp
     include/TextureViewMtlImpl.hpp
     include/TopLevelASMtlImpl.hpp
@@ -52,19 +58,25 @@ set(SRC
     src/BufferMtlImpl.mm
     src/BufferViewMtlImpl.mm
     src/DeviceContextMtlImpl.mm
+    src/DeviceMemoryMtlImpl.mm
+    src/EngineFactoryMtl.mm
     src/FenceMtlImpl.mm
     src/FramebufferMtlImpl.mm
     src/PipelineResourceSignatureMtlImpl.mm
+    src/PipelineStateCacheMtlImpl.mm
     src/PipelineStateMtlImpl.mm
+    src/PipelineStateValidationMtl.cpp
     src/QueryMtlImpl.mm
     src/RenderDeviceMtlImpl.mm
     src/RenderPassMtlImpl.mm
     src/SamplerMtlImpl.mm
     src/ShaderBindingTableMtlImpl.mm
     src/ShaderMtlImpl.mm
+    src/ShaderVariableManagerMtl.cpp
     src/TextureMtlImpl.mm
     src/TextureViewMtlImpl.mm
     src/TopLevelASMtlImpl.mm
+    src/SwapChainMtlImpl.mm
 )
 
 # Metal backend is only available on Apple platforms

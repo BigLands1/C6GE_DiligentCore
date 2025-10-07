@@ -27,36 +27,17 @@
 #pragma once
 
 /// \file
-/// Declaration of Diligent::BufferViewMtlImpl class
+/// Declaration of Diligent::ImmutableSamplerAttribsMtl struct
 
-#include "EngineMtlImplTraits.hpp"
-#include "BufferViewBase.hpp"
-
-#import <Metal/Metal.h>
+#include "BasicTypes.h"
 
 namespace Diligent
 {
 
-/// Buffer view implementation in Metal backend.
-class BufferViewMtlImpl final : public BufferViewBase<EngineMtlImplTraits>
+struct ImmutableSamplerAttribsMtl
 {
-public:
-    using TBufferViewBase = BufferViewBase<EngineMtlImplTraits>;
-
-    BufferViewMtlImpl(IReferenceCounters*   pRefCounters,
-                      RenderDeviceMtlImpl*  pDevice,
-                      const BufferViewDesc& ViewDesc,
-                      IBuffer*              pBuffer,
-                      bool                  bIsDefaultView);
-    ~BufferViewMtlImpl();
-
-    IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_BufferViewMtl, TBufferViewBase)
-
-    /// Implementation of IBufferViewMtl::GetMtlTextureView().
-    virtual id<MTLTexture> DILIGENT_CALL_TYPE GetMtlTextureView() const override final;
-
-protected:
-    id<MTLTexture> m_MtlTextureView = nil;
+    Uint32 BindingIndex = ~0u;
 };
+ASSERT_SIZEOF(ImmutableSamplerAttribsMtl, 4, "The struct is used in serialization and must be tightly packed");
 
 } // namespace Diligent

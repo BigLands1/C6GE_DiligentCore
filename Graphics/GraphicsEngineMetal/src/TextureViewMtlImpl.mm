@@ -72,8 +72,48 @@ TextureViewMtlImpl::TextureViewMtlImpl(IReferenceCounters*    pRefCounters,
                         break;
                 }
                 
-                NSRange levelRange = NSMakeRange(ViewDesc.MostDetailedMip, ViewDesc.NumMipLevels);
-                NSRange sliceRange = NSMakeRange(ViewDesc.FirstArraySlice, ViewDesc.NumArraySlices);
+                // Validate & clamp level/slice ranges to avoid Metal assertions
+                Uint32 ParentMipLevels = pTextureMtl->GetDesc().MipLevels;
+                Uint32 ParentArraySize = pTextureMtl->GetDesc().ArraySize;
+                Uint32 MostDetailed    = ViewDesc.MostDetailedMip;
+                Uint32 NumMipLevels    = ViewDesc.NumMipLevels;
+                if (ParentMipLevels == 0) ParentMipLevels = 1; // safety
+                if (MostDetailed >= ParentMipLevels)
+                {
+                    LOG_WARNING_MESSAGE("Metal: View MostDetailedMip (", MostDetailed, ") exceeds parent mip count (", ParentMipLevels, ") for texture '", (pTextureMtl->GetDesc().Name?pTextureMtl->GetDesc().Name:"<unnamed>"), "'. Clamping to 0.");
+                    MostDetailed = 0;
+                }
+                if (NumMipLevels == 0 || MostDetailed + NumMipLevels > ParentMipLevels)
+                {
+                    NumMipLevels = ParentMipLevels - MostDetailed;
+                }
+                if (NumMipLevels == 0) NumMipLevels = 1; // must be non-zero for Metal API
+
+                Uint32 FirstSlice   = ViewDesc.FirstArraySlice;
+                Uint32 NumSlices    = ViewDesc.NumArraySlices;
+                if (ParentArraySize == 0) ParentArraySize = 1;
+                if (FirstSlice >= ParentArraySize)
+                {
+                    LOG_WARNING_MESSAGE("Metal: View FirstArraySlice (", FirstSlice, ") exceeds parent array size (", ParentArraySize, ") for texture '", (pTextureMtl->GetDesc().Name?pTextureMtl->GetDesc().Name:"<unnamed>"), "'. Clamping to 0.");
+                    FirstSlice = 0;
+                }
+                if (NumSlices == 0 || FirstSlice + NumSlices > ParentArraySize)
+                {
+                    NumSlices = ParentArraySize - FirstSlice;
+                }
+                if (NumSlices == 0) NumSlices = 1;
+
+                // If parent is a non-array 2D texture (ParentArraySize==1) but view asked for slice >0 or multiple slices, clamp.
+                if (ParentArraySize == 1 && (FirstSlice != 0 || NumSlices != 1))
+                {
+                    LOG_WARNING_MESSAGE("Metal: Clamping texture view slice range [", FirstSlice, ",", (FirstSlice+NumSlices-1), "] to [0,0] for non-array texture '", (pTextureMtl->GetDesc().Name?pTextureMtl->GetDesc().Name:"<unnamed>"), "'.");
+                    FirstSlice = 0;
+                    NumSlices = 1;
+                }
+
+                NSRange levelRange = NSMakeRange(MostDetailed, NumMipLevels);
+                NSRange sliceRange = NSMakeRange(FirstSlice, NumSlices);
+                LOG_INFO_MESSAGE("Metal: Creating texture view levels=[", MostDetailed, ",", (MostDetailed+NumMipLevels-1), "] slices=[", FirstSlice, ",", (FirstSlice+NumSlices-1), "] for parent '", (pTextureMtl->GetDesc().Name?pTextureMtl->GetDesc().Name:"<unnamed>"), "'");
                 
                 m_MtlTexture = [mtlTexture newTextureViewWithPixelFormat:[mtlTexture pixelFormat]
                                                               textureType:textureType

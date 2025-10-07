@@ -44,25 +44,28 @@ BufferMtlImpl::BufferMtlImpl(IReferenceCounters*        pRefCounters,
     {
         id<MTLDevice> mtlDevice = pDeviceMtl->GetMtlDevice();
         
-        MTLResourceOptions options = MTLResourceStorageModeShared;
-        
-        if (BuffDesc.Usage == USAGE_DEFAULT || BuffDesc.Usage == USAGE_IMMUTABLE)
+        if (pBuffData != nullptr && pBuffData->pData != nullptr && BuffDesc.Size > 0)
         {
-            options = MTLResourceStorageModePrivate;
-        }
-        
-        if (pBuffData != nullptr && pBuffData->pData != nullptr)
-        {
-            // Create buffer with initial data
+            // Create buffer with initial data - use shared storage for data upload
             m_MtlBuffer = [mtlDevice newBufferWithBytes:pBuffData->pData
                                                  length:BuffDesc.Size
-                                                options:options];
+                                                options:MTLResourceStorageModeShared];
+        }
+        else if (BuffDesc.Size > 0)
+        {
+            // Create empty buffer - can use private storage for GPU-only buffers
+            MTLResourceOptions options = MTLResourceStorageModeShared;
+            if (BuffDesc.Usage == USAGE_DEFAULT || BuffDesc.Usage == USAGE_IMMUTABLE)
+            {
+                options = MTLResourceStorageModePrivate;
+            }
+            
+            m_MtlBuffer = [mtlDevice newBufferWithLength:BuffDesc.Size
+                                                  options:options];
         }
         else
         {
-            // Create empty buffer
-            m_MtlBuffer = [mtlDevice newBufferWithLength:BuffDesc.Size
-                                                  options:options];
+            LOG_ERROR_AND_THROW("Cannot create buffer with zero size");
         }
         
         if (m_MtlBuffer == nil)
@@ -104,6 +107,12 @@ id<MTLBuffer> BufferMtlImpl::GetMtlResource() const
 Uint64 BufferMtlImpl::GetNativeHandle()
 {
     return BitCast<Uint64>(m_MtlBuffer);
+}
+
+SparseBufferProperties BufferMtlImpl::GetSparseProperties() const
+{
+    DEV_ERROR("IBuffer::GetSparseProperties() is not yet supported in Metal backend");
+    return {};
 }
 
 void BufferMtlImpl::CreateViewInternal(const BufferViewDesc& ViewDesc, IBufferView** ppView, bool bIsDefaultView)
